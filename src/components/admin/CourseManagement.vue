@@ -1,92 +1,257 @@
 <template>
-  <div>
-    <h2>Course Management</h2>
-    <div class="row">
-      <AppInput v-model="filters.q" placeholder="Search courses..." />
-      <AppButton @click="load">View Courses</AppButton>
-      <AppButton variant="secondary" @click="openCreate">Create New</AppButton>
-    </div>
+  <div class="course-management">
+    <AppContentHeader
+      title="Course Management"
+      subtitle="Create, edit, and manage courses and learning materials"
+    >
+      <template #actions>
+        <AppButton icon="fas fa-plus" @click="openCourseModal">Add New Course</AppButton>
+      </template>
+    </AppContentHeader>
 
-    <div class="grid">
-      <AppCard v-for="c in filtered" :key="c.id" :title="c.title" :subtitle="c.code">
-        <div class="muted">{{ c.category }}</div>
-        <div class="row">
-          <AppButton variant="secondary" @click="edit(c)">Edit</AppButton>
-          <AppButton variant="secondary" @click="remove(c)">Delete</AppButton>
+    <AppFilterBar>
+      <AppSelect v-model="filters.category" label="Category">
+        <option value="all">All Categories</option>
+        <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
+      </AppSelect>
+      <AppSelect v-model="filters.status" label="Status">
+        <option value="all">All Status</option>
+        <option v-for="status in statuses" :key="status" :value="status">{{ status }}</option>
+      </AppSelect>
+      <AppInput
+        v-model="filters.search"
+        placeholder="Search courses..."
+        left-icon="fas fa-search"
+      />
+      <template #actions>
+        <AppButton
+          variant="secondary"
+          icon="fas fa-download"
+          @click="exportCourses"
+        >
+          Export
+        </AppButton>
+      </template>
+    </AppFilterBar>
+
+    <AppFormSection title="Create New Course">
+      <div class="form-grid">
+        <AppInput
+          v-model="newCourse.title"
+          label="Course Title"
+          placeholder="Enter course title"
+        />
+        <AppInput
+          v-model="newCourse.code"
+          label="Course Code"
+          placeholder="e.g., CS101"
+        />
+        <AppSelect v-model="newCourse.category" label="Category">
+          <option value="">Select category</option>
+          <option v-for="category in categories" :key="`form-${category}`" :value="category">{{ category }}</option>
+        </AppSelect>
+        <AppSelect v-model="newCourse.instructor" label="Instructor">
+          <option value="">Select instructor</option>
+          <option v-for="instructor in instructors" :key="instructor" :value="instructor">{{ instructor }}</option>
+        </AppSelect>
+        <AppTextarea
+          v-model="newCourse.description"
+          label="Course Description"
+          placeholder="Enter course description"
+          :rows="4"
+          class="full-width"
+        />
+      </div>
+      <template #footer>
+        <AppButton icon="fas fa-save" @click="createCourse">Create Course</AppButton>
+      </template>
+    </AppFormSection>
+
+    <AppDataTable
+      :columns="columns"
+      :rows="filteredCourses"
+      :row-key="rowKey"
+    >
+      <template #cell-status="{ row }">
+        <AppStatusBadge :variant="statusVariants[row.status]">
+          {{ row.statusLabel }}
+        </AppStatusBadge>
+      </template>
+      <template #cell-actions="{ row }">
+        <div class="table-actions">
+          <button class="icon-button edit" @click="editCourse(row)">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="icon-button delete" @click="removeCourse(row)">
+            <i class="fas fa-trash"></i>
+          </button>
+          <button class="icon-button view" @click="viewCourse(row)">
+            <i class="fas fa-eye"></i>
+          </button>
         </div>
-      </AppCard>
-    </div>
-
-    <AppModal v-if="ui.modals.editCourse" :title="editing.id ? 'Edit Course' : 'Create Course'" @close="ui.closeModal('editCourse')">
-      <form @submit.prevent="save">
-        <AppInput v-model="editing.title" label="Title" />
-        <AppInput v-model="editing.code" label="Code" />
-        <AppInput v-model="editing.category" label="Category" />
-        <label class="app-input">
-          <span>Description</span>
-          <textarea v-model="editing.description" rows="4"></textarea>
-        </label>
-        <div class="row end">
-          <AppButton variant="secondary" type="button" @click="ui.closeModal('editCourse')">Cancel</AppButton>
-          <AppButton type="submit">Save</AppButton>
-        </div>
-      </form>
-    </AppModal>
-
-    <AppLoading v-if="ui.loading" />
+      </template>
+    </AppDataTable>
   </div>
 </template>
 
 <script setup>
 import { computed, reactive } from 'vue';
-import { useAdminStore } from '../../stores/useAdminStore';
-import { useUIStore } from '../../stores/useUIStore';
-import AppCard from '../common/AppCard.vue';
 import AppButton from '../common/AppButton.vue';
+import AppContentHeader from '../common/AppContentHeader.vue';
+import AppDataTable from '../common/AppDataTable.vue';
+import AppFilterBar from '../common/AppFilterBar.vue';
+import AppFormSection from '../common/AppFormSection.vue';
 import AppInput from '../common/AppInput.vue';
-import AppModal from '../common/AppModal.vue';
-import AppLoading from '../common/AppLoading.vue';
+import AppSelect from '../common/AppSelect.vue';
+import AppStatusBadge from '../common/AppStatusBadge.vue';
+import AppTextarea from '../common/AppTextarea.vue';
 
-const admin = useAdminStore();
-const ui = useUIStore();
+const categories = ['Computer Science', 'Engineering', 'Business', 'Mathematics'];
+const statuses = ['Active', 'Inactive', 'Draft'];
+const instructors = ['Dr. Abebe Kebede', 'Dr. Selamawit Tadesse', 'Dr. Michael Berhanu', 'Dr. Hanna Girma', 'Dr. Yordanos Lemma'];
 
-const filters = reactive({ q: '' });
-const editing = reactive({ id: null, title: '', code: '', category: '', description: '' });
-
-const filtered = computed(() =>
-  admin.courses.filter(c => [c.title, c.code, c.category].join(' ').toLowerCase().includes(filters.q.toLowerCase()))
-);
-
-function load() {
-  admin.loadCourses();
-}
-function openCreate() {
-  Object.assign(editing, { id: null, title: '', code: '', category: '', description: '' });
-  ui.openModal('editCourse', true);
-}
-function edit(c) {
-  Object.assign(editing, c);
-  ui.openModal('editCourse', true);
-}
-async function save() {
-  if (editing.id) {
-    await admin.updateCourse(editing);
-  } else {
-    await admin.createCourse(editing);
+const state = reactive({
+  courses: [
+    { code: 'CS201', title: 'Data Structures and Algorithms', category: 'Computer Science', instructor: 'Dr. Abebe Kebede', enrollments: 142, status: 'Active', statusLabel: 'Active' },
+    { code: 'CS202', title: 'Database Systems', category: 'Computer Science', instructor: 'Dr. Selamawit Tadesse', enrollments: 118, status: 'Active', statusLabel: 'Active' },
+    { code: 'MTH101', title: 'Calculus I', category: 'Mathematics', instructor: 'Dr. Michael Berhanu', enrollments: 205, status: 'Active', statusLabel: 'Active' },
+    { code: 'BUS301', title: 'Business Management', category: 'Business', instructor: 'Dr. Hanna Girma', enrollments: 87, status: 'Inactive', statusLabel: 'Inactive' },
+    { code: 'ENG150', title: 'Introduction to Engineering', category: 'Engineering', instructor: 'Dr. Yordanos Lemma', enrollments: 93, status: 'Draft', statusLabel: 'Draft' }
+  ],
+  filters: {
+    category: 'all',
+    status: 'all',
+    search: ''
+  },
+  newCourse: {
+    title: '',
+    code: '',
+    category: '',
+    instructor: '',
+    description: ''
   }
-  ui.closeModal('editCourse');
+});
+
+const filters = state.filters;
+const newCourse = state.newCourse;
+
+const columns = [
+  { key: 'code', label: 'Course Code', minWidth: '140px' },
+  { key: 'title', label: 'Course Title', minWidth: '220px' },
+  { key: 'category', label: 'Category', minWidth: '160px' },
+  { key: 'instructor', label: 'Instructor', minWidth: '220px' },
+  { key: 'enrollments', label: 'Enrollments', align: 'right', width: '120px' },
+  { key: 'status', label: 'Status', width: '140px', align: 'center' },
+  { key: 'actions', label: 'Actions', width: '140px', align: 'center' },
+];
+
+const statusVariants = {
+  Active: 'success',
+  Inactive: 'danger',
+  Draft: 'warning',
+};
+
+const filteredCourses = computed(() => {
+  return state.courses
+    .map(course => ({
+      ...course,
+      actions: 'actions',
+    }))
+    .filter(course => {
+      const matchesCategory = filters.category === 'all' || course.category === filters.category;
+      const matchesStatus = filters.status === 'all' || course.statusLabel === filters.status;
+      const query = filters.search.trim().toLowerCase();
+      const matchesSearch = !query || `${course.code} ${course.title} ${course.instructor}`.toLowerCase().includes(query);
+      return matchesCategory && matchesStatus && matchesSearch;
+    });
+});
+
+const rowKey = (row) => row.code;
+
+function openCourseModal() {
+  console.log('Open course creation modal');
 }
-async function remove(c) {
-  if (confirm(`Delete course ${c.title}?`)) {
-    await admin.deleteCourse(c.id);
-  }
+
+function createCourse() {
+  console.log('Create course clicked', { ...newCourse });
+}
+
+function editCourse(course) {
+  console.log('Edit course', course);
+}
+
+function removeCourse(course) {
+  console.log('Remove course', course);
+}
+
+function viewCourse(course) {
+  console.log('View course', course);
+}
+
+function exportCourses() {
+  console.log('Export courses');
 }
 </script>
 
 <style scoped>
-.row { display: flex; gap: 8px; align-items: center; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 12px; }
-.muted { color: #6b7280; font-size: 13px; margin: 6px 0; }
-.row.end { justify-content: flex-end; }
-textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; }
+.course-management {
+  padding: 2rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 24, 39, 0.08);
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px -10px rgba(17, 24, 39, 0.25);
+}
+
+.icon-button.edit:hover {
+  background: rgba(37, 99, 235, 0.15);
+  color: #1d4ed8;
+}
+
+.icon-button.delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+}
+
+.icon-button.view:hover {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+}
+
+@media (max-width: 768px) {
+  .course-management {
+    padding: 1.5rem;
+  }
+}
 </style>

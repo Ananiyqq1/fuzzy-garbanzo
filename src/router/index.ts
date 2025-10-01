@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { useAuthStore } from '../stores/useAuthStore';
 
 const SignInUp = () => import('../views/login/LoginView.vue');
 const OTP = () => import('../components/auth/OTP.vue');
@@ -12,6 +11,7 @@ const Resources = () => import('../components/student/Resources.vue');
 const StudyRooms = () => import('../components/student/StudyRooms.vue');
 const Evaluations = () => import('../components/student/Evaluations.vue');
 const StudentPreferences = () => import('../components/student/StudentPreferences.vue');
+const StudentProfile = () => import('../components/student/StudentProfile.vue');
 
 const AdminView = () => import('../views/admin/AdminView.vue');
 const AdminDashboard = () => import('../components/admin/AdminDashboard.vue');
@@ -20,12 +20,13 @@ const TopicManagement = () => import('../components/admin/TopicManagement.vue');
 const UserManagement = () => import('../components/admin/UserManagement.vue');
 const Analytics = () => import('../components/admin/Analytics.vue');
 const Settings = () => import('../components/admin/Settings.vue');
+const AdminProfile = () => import('../components/admin/AdminProfile.vue');
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/sign' },
-    { path: '/sign', component: SignInUp, meta: { public: true } },
+    { path: '/', redirect: '/auth' },
+    { path: '/auth', component: SignInUp, meta: { public: true } },
     { path: '/otp', component: OTP, meta: { public: true } },
     { path: '/forgot-password', component: ForgotPassword, meta: { public: true } },
 
@@ -39,8 +40,13 @@ const router = createRouter({
         { path: 'resources', component: Resources },
         { path: 'study-rooms', component: StudyRooms },
         { path: 'evaluations', component: Evaluations },
-        { path: 'preferences', component: StudentPreferences },
+        { path: 'profile', component: StudentProfile },
       ],
+      meta: { requiresAuth: true, role: 'student' },
+    },
+    {
+      path: '/student/preferences',
+      component: StudentPreferences,
       meta: { requiresAuth: true, role: 'student' },
     },
 
@@ -55,28 +61,13 @@ const router = createRouter({
         { path: 'users', component: UserManagement },
         { path: 'analytics', component: Analytics },
         { path: 'settings', component: Settings },
+        { path: 'profile', component: AdminProfile },
       ],
       meta: { requiresAuth: true, role: 'admin' },
     },
 
-    { path: '/:pathMatch(.*)*', redirect: '/sign' },
+    { path: '/:pathMatch(.*)*', redirect: '/auth' },
   ],
-});
-
-router.beforeEach((to, from, next) => {
-  const auth = useAuthStore();
-  if (to.meta.public) return next();
-
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return next({ path: '/sign', query: { redirect: to.fullPath } });
-  }
-
-  if (to.meta.role && auth.user?.role !== to.meta.role) {
-    // Send user to their dashboard
-    return next(auth.user?.role === 'admin' ? '/admin/dashboard' : '/student/dashboard');
-  }
-
-  next();
 });
 
 export default router;
