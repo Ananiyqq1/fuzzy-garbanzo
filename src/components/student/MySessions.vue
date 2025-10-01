@@ -1,148 +1,553 @@
 <template>
   <div class="my-sessions">
-    <h1>My Sessions</h1>
-    <p>Here you can manage all your enrolled and past study sessions.</p>
+    <div class="page-shell">
+      <div class="header-row">
+        <AppContentHeader
+          title="My Study Sessions"
+          subtitle="Manage your upcoming, ongoing, and past study sessions"
+        />
+        <AppButton class="create-session-btn" size="small" icon="fas fa-plus" @click="openCreateSession">
+          Create Session
+        </AppButton>
+      </div>
 
-    <div class="filter-controls">
-      <AppInput v-model="filters.q" placeholder="Search sessions by title..." />
-      <select v-model="filters.status" class="app-select">
-        <option value="">All Statuses</option>
-        <option value="Upcoming">Upcoming</option>
-        <option value="Ongoing">Ongoing</option>
-        <option value="Completed">Completed</option>
-      </select>
-      <AppButton @click="loadSessions">Refresh Sessions</AppButton>
+      <AppTabs v-model="activeFilter" :tabs="filterTabs" />
+
+      <div class="sessions-grid">
+        <AppCard
+          v-for="session in filteredSessions"
+          :key="session.id"
+          class="session-card"
+          variant="elevated"
+        >
+          <div class="session-status-badge">
+            <AppStatusBadge :variant="statusVariants[session.status.toLowerCase()]">
+              {{ session.status }}
+            </AppStatusBadge>
+          </div>
+          <template #header>
+            <div class="session-header">
+              <div class="session-header-text">
+                <h3>{{ session.title }}</h3>
+                <div class="session-meta">
+                  <i class="fas fa-calendar-alt"></i>
+                  <span>{{ session.datetime }}</span>
+                </div>
+                <div class="session-meta">
+                  <i class="fas fa-video"></i>
+                  <span>{{ session.type }}</span>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <div class="session-body">
+            <p class="session-description">
+              {{ session.description }}
+            </p>
+            <div class="session-participants">
+              <div
+                v-for="participant in session.participants"
+                :key="participant"
+                class="participant"
+                :class="{ 'more-participants': participant.startsWith('+') }"
+              >
+                {{ participant }}
+              </div>
+            </div>
+          </div>
+
+          <template #footer>
+            <div class="session-actions">
+              <AppButton size="small" @click="handlePrimaryAction(session)">
+                {{ getPrimaryActionText(session) }}
+              </AppButton>
+              <AppButton size="small" variant="secondary" @click="openDetails(session)">
+                Details
+              </AppButton>
+            </div>
+          </template>
+        </AppCard>
+      </div>
     </div>
 
-    <section class="sessions-list">
-      <AppCard v-for="s in filteredSessions" :key="s.id" :title="s.title" :subtitle="s.datetime">
-        <div class="muted">{{ s.type }}</div>
-        <div class="row items-center justify-between mt-8">
-          <span class="badge" :class="s.status.toLowerCase()">{{ s.status }}</span>
-          <div class="actions">
-            <AppButton variant="secondary" @click="openDetails(s)">Details</AppButton>
-            <AppButton v-if="s.status === 'Upcoming' || s.status === 'Ongoing'" @click="join(s)">Join</AppButton>
-            <AppButton v-if="s.status === 'Completed'" variant="secondary" @click="openFeedback(s)">Feedback</AppButton>
-          </div>
-        </div>
-      </AppCard>
-      <p v-if="!filteredSessions.length">No sessions found matching your criteria.</p>
-    </section>
+    <div class="page-overlays">
+      <SessionDetailsModal
+        v-if="ui.modals.sessionDetails"
+        :session="ui.modals.sessionDetails"
+        @close="ui.modals.sessionDetails = null"
+        @join="join"
+        @open-materials="openMaterials"
+        @open-feedback="openFeedback"
+      />
 
-    <!-- Modals (reused from StudentDashboard) -->
-    <SessionDetailsModal
-      v-if="ui.modals.sessionDetails"
-      :session="ui.modals.sessionDetails"
-      @close="ui.closeModal('sessionDetails')"
-      @open-materials="openMaterials"
-      @open-feedback="openFeedback"
-      @join="join"
-    />
+      <SessionMaterialsModal
+        v-if="ui.modals.sessionMaterials"
+        :session="ui.modals.sessionMaterials"
+        @close="ui.modals.sessionMaterials = null"
+        @action="handleMaterialAction"
+      />
 
-    <SessionMaterialsModal
-      v-if="ui.modals.sessionMaterials"
-      :materials="ui.modals.sessionMaterials"
-      @close="ui.closeModal('sessionMaterials')"
-    />
+      <SessionFeedbackModal
+        v-if="ui.modals.sessionFeedback"
+        :session="ui.modals.sessionFeedback"
+        @close="ui.modals.sessionFeedback = null"
+        @submit="submitFeedback"
+      />
 
-    <SessionFeedbackModal
-      v-if="ui.modals.sessionFeedback"
-      :session="ui.modals.sessionFeedback"
-      @submit="submitFeedback"
-      @close="ui.closeModal('sessionFeedback')"
-    />
+      <CreateSessionModal
+        v-if="ui.modals.createSession"
+        @close="ui.modals.createSession = false"
+        @submit="handleCreateSession"
+      />
 
-    <AppLoading v-if="ui.loading" />
+      <AppLoading v-if="ui.loading" />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, computed } from 'vue';
-import { useStudentStore } from '../../stores/useStudentStore';
-import { useUIStore } from '../../stores/useUIStore';
-import AppCard from '../common/AppCard.vue';
+import { onMounted, reactive, computed, ref } from 'vue';
 import AppButton from '../common/AppButton.vue';
-import AppInput from '../common/AppInput.vue';
+import AppCard from '../common/AppCard.vue';
+import AppContentHeader from '../common/AppContentHeader.vue';
 import AppLoading from '../common/AppLoading.vue';
+import AppStatusBadge from '../common/AppStatusBadge.vue';
+import AppTabs from '../common/AppTabs.vue';
+import SessionDetailsModal from './modals/SessionDetailsModal.vue';
+import SessionFeedbackModal from './modals/SessionFeedbackModal.vue';
+import SessionMaterialsModal from './modals/SessionMaterialsModal.vue';
+import CreateSessionModal from './modals/CreateSessionModal.vue';
 
-// import SessionDetailsModal from './modals/SessionDetailsModal.vue';
-// import SessionFeedbackModal from './modals/SessionFeedbackModal.vue';
-// import SessionMaterialsModal from './modals/SessionMaterialsModal.vue';
-
-const student = useStudentStore();
-const ui = useUIStore();
-
-const filters = reactive({
-  q: '',
-  status: '',
+// Local UI and student state replacing stores
+const ui = reactive({
+  loading: false,
+  notify: (msg, type) => console.log(type ? `${type}: ${msg}` : msg),
+  modals: {
+    sessionDetails: null,
+    sessionMaterials: null,
+    sessionFeedback: null,
+    createSession: false,
+  },
 });
+
+const student = reactive({
+  allSessions: [
+    {
+      id: 1,
+      title: 'Web Development Project Meeting',
+      datetime: 'Friday, 10:00 AM - 11:30 AM',
+      startAt: '2023-11-10T10:00:00',
+      type: 'Virtual Session',
+      host: 'Dr. Abebe Kebede',
+      status: 'Upcoming',
+      description: 'Planning session for the group project. We\'ll assign tasks and set milestones.',
+      participants: ['AB', 'CD', 'EF'],
+      materials: [
+        { name: 'Session Slides.pdf', type: 'pdf', action: 'Download' },
+        { name: 'Meeting Notes.docx', type: 'docx', action: 'Download' },
+        { name: 'Session Recording.mp4', type: 'video', action: 'Watch' },
+      ],
+    },
+    {
+      id: 2,
+      title: 'Data Structures Study Group',
+      datetime: 'Tomorrow, 3:00 PM - 5:00 PM',
+      startAt: '2023-11-05T15:00:00',
+      type: 'Virtual Session',
+      host: 'Mikias Solomon',
+      status: 'Upcoming',
+      description: 'Let\'s review linked lists, trees, and sorting algorithms for the upcoming exam. Bring your questions!',
+      participants: ['JD', 'MA', 'SK', '+5'],
+      materials: [
+        { name: 'Revision Outline.pdf', type: 'pdf', action: 'Download' },
+      ],
+    },
+    {
+      id: 3,
+      title: 'Python Programming Help',
+      datetime: 'Today, 1:00 PM - 3:00 PM',
+      startAt: '2023-10-30T13:00:00',
+      type: 'Virtual Session',
+      host: 'Sara Yirga',
+      status: 'Ongoing',
+      description: 'Helping with Python concepts and debugging code. All welcome to join and ask questions.',
+      participants: ['MN', 'OP'],
+      materials: [
+        { name: 'Code Snippets.zip', type: 'link', action: 'Open' },
+      ],
+    },
+    {
+      id: 4,
+      title: 'Database Systems Workshop',
+      datetime: 'Today, 2:00 PM - 4:00 PM',
+      startAt: '2023-10-30T14:00:00',
+      type: 'Virtual Session',
+      host: 'Lulit Alemu',
+      status: 'Ongoing',
+      description: 'Working on SQL queries and normalization techniques. Join us if you need help with assignment 3.',
+      participants: ['TP', 'LJ', 'RM', '+8'],
+      materials: [
+        { name: 'Normalization Cheatsheet.pdf', type: 'pdf', action: 'Download' },
+      ],
+    },
+    {
+      id: 5,
+      title: 'Networking Concepts Review',
+      datetime: 'October 5, 2023',
+      startAt: '2023-10-05T10:00:00',
+      type: 'Virtual Session',
+      host: 'Kebede Alem',
+      status: 'Completed',
+      description: 'Reviewed TCP/IP model, routing algorithms, and network security concepts.',
+      participants: ['GH', 'IJ', 'KL', '+2'],
+      materials: [
+        { name: 'Session Recording.mp4', type: 'video', action: 'Watch' },
+        { name: 'Packet Tracer Lab.pdf', type: 'pdf', action: 'Download' },
+      ],
+      feedback: { rating: 4, comments: 'Very helpful recap session.', recommend: 'yes' },
+    },
+    {
+      id: 6,
+      title: 'Algorithm Problem Solving',
+      datetime: 'October 12, 2023',
+      startAt: '2023-10-12T16:00:00',
+      type: 'Virtual Session',
+      host: 'Bereket Tilahun',
+      status: 'Completed',
+      description: 'Solved various algorithmic problems including dynamic programming and graph algorithms.',
+      participants: ['QR', 'ST', 'UV'],
+      materials: [
+        { name: 'Practice Problems.pdf', type: 'pdf', action: 'Download' },
+        { name: 'Solution Walkthrough.docx', type: 'docx', action: 'Download' },
+      ],
+      feedback: { rating: 5, comments: 'Excellent explanations and pacing.', recommend: 'yes' },
+    },
+  ],
+});
+
+const activeFilter = ref('all');
+
+const filterTabs = [
+  { value: 'all', label: 'All Sessions', icon: 'fas fa-layer-group' },
+  { value: 'upcoming', label: 'Upcoming', icon: 'fas fa-hourglass-half' },
+  { value: 'ongoing', label: 'Ongoing', icon: 'fas fa-play-circle' },
+  { value: 'completed', label: 'Completed', icon: 'fas fa-check-circle' }
+];
+
+const statusVariants = {
+  upcoming: 'warning',
+  ongoing: 'success',
+  completed: 'neutral'
+};
 
 const filteredSessions = computed(() => {
-  let sessions = student.allSessions;
-  if (filters.q) {
-    sessions = sessions.filter(s => s.title.toLowerCase().includes(filters.q.toLowerCase()));
+  if (activeFilter.value === 'all') {
+    return student.allSessions;
   }
-  if (filters.status) {
-    sessions = sessions.filter(s => s.status === filters.status);
-  }
-  return sessions;
+  return student.allSessions.filter(session => 
+    session.status.toLowerCase() === activeFilter.value
+  );
 });
 
-onMounted(() => {
-  loadSessions();
-});
+onMounted(() => { loadSessions(); });
 
-function loadSessions() {
-  student.loadAllSessions();
-}
+function loadSessions() { ui.loading = true; setTimeout(() => (ui.loading = false), 300); }
 
 function openDetails(session) {
-  ui.openModal('sessionDetails', session);
+  ui.modals.sessionDetails = { ...session };
 }
 
 function openMaterials(session) {
-  // Mock materials data for demonstration
-  ui.openModal('sessionMaterials', {
-    title: session.title,
-    date: session.datetime || 'October 5, 2023',
-    host: session.host || 'Dr. Abebe Kebede',
-    files: [
-      { name: 'Session Slides.pdf', type: 'pdf', action: 'Download' },
-      { name: 'Meeting Notes.docx', type: 'docx', action: 'Download' },
-      { name: 'Session Recording.mp4', type: 'video', action: 'Watch' },
-    ],
-  });
+  ui.modals.sessionMaterials = {
+    ...session,
+    date: session.datetime,
+    materials: session.materials ?? [],
+  };
 }
 
 function openFeedback(session) {
-  ui.openModal('sessionFeedback', session);
+  ui.modals.sessionFeedback = {
+    ...session,
+    feedback: session.feedback || { rating: 0, comments: '', recommend: 'yes' },
+  };
 }
 
-async function submitFeedback(payload) {
-  await student.submitFeedback(payload);
-  ui.closeModal('sessionFeedback');
-  ui.notify('Feedback submitted successfully!', 'success');
+function handlePrimaryAction(session) {
+  if (session.status === 'Completed') {
+    openMaterials(session);
+    return;
+  }
+
+  openDetails(session);
+}
+
+function getPrimaryActionText(session) {
+  if (session.status === 'Upcoming') return 'Start Session';
+  if (session.status === 'Ongoing') return 'Join Now';
+  if (session.status === 'Completed') return 'View Materials';
+  return 'Action';
 }
 
 function join(session) {
   ui.notify(`Joining session: ${session.title}`);
-  // In a real app, this would navigate to a video conference link or similar
+  ui.modals.sessionDetails = null;
 }
+
+function handleMaterialAction(item) {
+  ui.notify(`${item.action || 'Download'} · ${item.name}`);
+}
+
+function submitFeedback(payload) {
+  ui.modals.sessionFeedback = null;
+  ui.notify('Feedback submitted successfully!', 'success');
+}
+
+function openCreateSession() {
+  ui.modals.createSession = true;
+}
+
+function handleCreateSession(form) {
+  const newSession = {
+    id: Date.now(),
+    title: form.title,
+    datetime: `${form.date || 'TBD'}${form.time ? ` · ${form.time}` : ''}`,
+    startAt: form.date ? new Date(`${form.date}T${form.time || '00:00'}`).toISOString() : new Date().toISOString(),
+    type: form.mode === 'in-person' ? 'In-person Session' : 'Virtual Session',
+    host: 'You',
+    status: 'Upcoming',
+    description: form.description,
+    participants: ['You'],
+    materials: [],
+  };
+
+  student.allSessions.unshift(newSession);
+  ui.modals.createSession = false;
+  ui.notify(`Session "${form.title}" created successfully!`, 'success');
+}
+
 </script>
 
 <style scoped>
-.my-sessions { display: flex; flex-direction: column; gap: 16px; }
-.filter-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-.app-select { padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; background: white; }
-.sessions-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-.row { display: flex; align-items: center; }
-.justify-between { justify-content: space-between; }
-.items-center { align-items: center; }
-.mt-8 { margin-top: 8px; }
-.badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; }
-.badge.upcoming { background: #dbeafe; color: #1d4ed8; }
-.badge.ongoing { background: #dcfce7; color: #166534; }
-.badge.completed { background: #fee2e2; color: #991b1b; }
-.muted { color: #6b7280; font-size: 13px; }
-.actions { display: flex; gap: 8px; }
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.create-session-btn {
+  align-self: center;
+}
+
+.my-sessions {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  display: flex;
+  justify-content: center;
+  padding: 3rem 2rem;
+}
+.page-shell {
+  width: 100%;
+  max-width: 1280px;
+  padding: 2.25rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.sessions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+}
+
+.my-sessions :deep(.tab-list) {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.my-sessions :deep(.tab-trigger) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  color: #374151;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  box-shadow: 0 10px 18px -12px rgba(17, 24, 39, 0.35);
+}
+
+.my-sessions :deep(.tab-trigger:not(.active):hover) {
+  background: rgba(17, 24, 39, 0.08);
+}
+
+.my-sessions :deep(.tab-trigger.active) {
+  background: linear-gradient(135deg, #111827, #1f2937);
+  color: #fff;
+  box-shadow: 0 14px 28px -16px rgba(17, 24, 39, 0.45);
+}
+
+
+.session-card {
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+
+.session-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.session-card :deep(.card-header) {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.session-status-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.5rem 1rem 0.75rem;
+}
+
+.session-status-badge :deep(.app-status-badge) {
+  border-radius: 0 1rem 0 0.75rem;
+  box-shadow: none;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.session-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.session-header-text h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+  padding-right: 4rem;
+}
+
+.session-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.session-meta i {
+  width: 16px;
+  text-align: center;
+}
+
+.session-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
+.session-description {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.session-participants {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.participant {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: -10px;
+  border: 2px solid #ffffff;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: #374151;
+}
+
+.participant.more-participants {
+  background: #111827;
+  color: #ffffff;
+}
+
+.session-card :deep(.card-footer) {
+  border-top: none;
+  padding-top: 0;
+}
+
+.session-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.session-actions :deep(.btn) {
+  border-radius: 20px;
+  border: 1px solid #111827;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.65rem 1.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .my-sessions {
+    padding: 1.5rem;
+  }
+
+  .sessions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .session-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .session-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
 </style>
