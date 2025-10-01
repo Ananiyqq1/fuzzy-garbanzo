@@ -4,19 +4,11 @@
 
     <!-- Role Selector -->
     <div class="role-selector">
-      <div
-        class="role-option"
-        :class="{ selected: selectedRole === 'student' }"
-        @click="selectRole('student')"
-      >
+      <div class="role-option" :class="{ selected: selectedRole === 'student' }" @click="selectRole('student')">
         <div class="role-icon"><i class="fas fa-user-graduate"></i></div>
         <div>Student</div>
       </div>
-      <div
-        class="role-option"
-        :class="{ selected: selectedRole === 'admin' }"
-        @click="selectRole('admin')"
-      >
+      <div class="role-option" :class="{ selected: selectedRole === 'admin' }" @click="selectRole('admin')">
         <div class="role-icon"><i class="fas fa-user-tie"></i></div>
         <div>Admin</div>
       </div>
@@ -24,27 +16,14 @@
 
     <!-- Email Input -->
     <label for="signin-email">Institute Email</label>
-    <input
-      type="email"
-      id="signin-email"
-      v-model="email"
-      placeholder="Institute Email"
-      required
-    />
+    <input type="email" id="signin-email" v-model="email" placeholder="Institute Email" required />
     <div class="error-message" :class="{ show: emailError }">
       {{ emailError }}
     </div>
 
     <!-- Password Input -->
     <label for="signin-password">Password</label>
-    <input
-      type="password"
-      id="signin-password"
-      v-model="password"
-      placeholder="Password"
-      required
-      minlength="8"
-    />
+    <input type="password" id="signin-password" v-model="password" placeholder="Password" required minlength="8" />
     <div class="error-message" :class="{ show: passwordError }">
       {{ passwordError }}
     </div>
@@ -66,6 +45,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import login from './api/Login'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 const emit = defineEmits(['switch-to-signup'])
 const email = ref('')
@@ -110,12 +91,34 @@ async function submit() {
 
   isLoading.value = true
   try {
-    // Mock navigation by role
-    if (selectedRole.value === 'admin') {
-      router.push('/admin/dashboard')
-    } else {
-      router.push('/student/dashboard')
+    var result = await login({
+      institute_email: email.value,
+      password: password.value,
+    })
+    if (result.data.verification_required) {
+      router.push(`/auth/otp/${result.data.otp_session_id}`);
+      return;
     }
+    const auth = useAuthStore()
+    await auth.fetchUser()
+    if (auth.hasRole("admin")) {
+      router.push("/admin");
+      return;
+
+    } else if (auth.hasRole("peer")) {
+      router.push("/");
+      return;
+
+    } else {
+      router.push("/");
+      return;
+    }
+    // Mock navigation by role
+    // if (selectedRole.value === 'admin') {
+    //   router.push('/admin/dashboard')
+    // } else {
+    //   router.push('/student/dashboard')
+    // }
   } catch (error) {
     console.error('Sign in error:', error)
   } finally {
@@ -137,7 +140,7 @@ p {
   letter-spacing: 0.5px;
   margin: 20px 0 30px;
   color: var(--white);
-  
+
 }
 
 a {
@@ -202,7 +205,8 @@ label {
   margin-bottom: 5px;
 }
 
-input, select {
+input,
+select {
   background-color: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -212,7 +216,8 @@ input, select {
   transition: all 0.3s ease;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: #111827;
   box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.1);
@@ -258,5 +263,4 @@ input:focus, select:focus {
 .error-message.show {
   display: block;
 }
-
 </style>

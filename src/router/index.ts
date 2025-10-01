@@ -1,73 +1,121 @@
+import { useAuthStore } from '@/stores/useAuthStore';
+import AuthView from '@/views/auth/AuthView.vue';
 import { createRouter, createWebHistory } from 'vue-router';
+import SignInUp from '../components/auth/LoginComponent.vue';
+import OTP from "../components/auth/OTP.vue";
+import ForgotPassword from '../components/auth/ForgetPassword.vue'
+import StudentView from '../views/student/StudentView.vue'
+import StudentDashboard from '../components/student/StudentDashboard.vue'
+import MySessions from '../components/student/MySessions.vue'
+import Resources from '../components/student/Resources.vue'
+import StudyRooms from '../components/student/StudyRooms.vue'
+import Evaluations from '../components/student/Evaluations.vue'
+import StudentPreferences from '../components/student/StudentPreferences.vue'
+import StudentProfile from '../components/student/StudentProfile.vue'
 
-const SignInUp = () => import('../views/login/LoginView.vue');
-const OTP = () => import('../components/auth/OTP.vue');
-const ForgotPassword = () => import('../components/auth/ForgetPassword.vue');
+import AdminView from '../views/admin/AdminView.vue'
+import AdminDashboard from '../components/admin/AdminDashboard.vue'
+import CourseManagement from '../components/admin/CourseManagement.vue'
+import TopicManagement from '../components/admin/TopicManagement.vue'
+import UserManagement from '../components/admin/UserManagement.vue'
+import Analytics from '../components/admin/Analytics.vue'
+import Settings from '../components/admin/Settings.vue'
+import AdminProfile from '../components/admin/AdminProfile.vue'
 
-const StudentView = () => import('../views/student/StudentView.vue');
-const StudentDashboard = () => import('../components/student/StudentDashboard.vue');
-const MySessions = () => import('../components/student/MySessions.vue');
-const Resources = () => import('../components/student/Resources.vue');
-const StudyRooms = () => import('../components/student/StudyRooms.vue');
-const Evaluations = () => import('../components/student/Evaluations.vue');
-const StudentPreferences = () => import('../components/student/StudentPreferences.vue');
-const StudentProfile = () => import('../components/student/StudentProfile.vue');
+const routes = [
+  {
+    path: '/auth',
+    component: AuthView,
+    meta: { requiresAuth: false },
+    children: [
+      { path: '', component: SignInUp },
+      { path: 'otp/:session_id', component: OTP, meta: { title: "Please check your email" }, },
+      { path: 'forgot-password', component: ForgotPassword },
+    ]
+  },
 
-const AdminView = () => import('../views/admin/AdminView.vue');
-const AdminDashboard = () => import('../components/admin/AdminDashboard.vue');
-const CourseManagement = () => import('../components/admin/CourseManagement.vue');
-const TopicManagement = () => import('../components/admin/TopicManagement.vue');
-const UserManagement = () => import('../components/admin/UserManagement.vue');
-const Analytics = () => import('../components/admin/Analytics.vue');
-const Settings = () => import('../components/admin/Settings.vue');
-const AdminProfile = () => import('../components/admin/AdminProfile.vue');
+  // {
+  //     path: "/live/:stream_session_id",
+  //     component: NewStreamView,
+  //     meta: { requiresAuth: true },
+  //   },
+
+
+  {
+    path: '/',
+    component: StudentView,
+    name: "StudentHome",
+    children: [
+      { path: '', component: StudentDashboard, name: "StudentDashboard", },
+      { path: 'sessions', component: MySessions, name: "MySessions" },
+      { path: 'resources', component: Resources, name: "Resources" },
+      { path: 'study-rooms', component: StudyRooms, name: "StudyRooms" },
+      { path: 'evaluations', component: Evaluations, name: "Evaluations" },
+      { path: 'profile', component: StudentProfile, name: "StudentProfile" },
+      { path: 'preferences', component: StudentPreferences, name: "StudentPreferences" },
+    ],
+    meta: { requiresAuth: true, role: 'peer' },
+  },
+
+
+  {
+    path: '/admin',
+    component: AdminView,
+    name: "AdminHome",
+    children: [
+      { path: '', component: AdminDashboard, name: "AdminDashboard" },
+      { path: 'courses', component: CourseManagement, name: "Courses" },
+      { path: 'topics', component: TopicManagement, name: "Topics" },
+      { path: 'users', component: UserManagement, name: "Users" },
+      { path: 'analytics', component: Analytics, name: "Analytics" },
+      { path: 'settings', component: Settings, name: "Settings" },
+      { path: 'profile', component: AdminProfile, name: "AdminProfile" },
+    ],
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+];
+
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [
-    { path: '/', redirect: '/auth' },
-    { path: '/auth', component: SignInUp, meta: { public: true } },
-    { path: '/otp', component: OTP, meta: { public: true } },
-    { path: '/forgot-password', component: ForgotPassword, meta: { public: true } },
-
-    {
-      path: '/student',
-      component: StudentView,
-      children: [
-        { path: '', redirect: '/student/dashboard' },
-        { path: 'dashboard', component: StudentDashboard },
-        { path: 'sessions', component: MySessions },
-        { path: 'resources', component: Resources },
-        { path: 'study-rooms', component: StudyRooms },
-        { path: 'evaluations', component: Evaluations },
-        { path: 'profile', component: StudentProfile },
-      ],
-      meta: { requiresAuth: true, role: 'student' },
-    },
-    {
-      path: '/student/preferences',
-      component: StudentPreferences,
-      meta: { requiresAuth: true, role: 'student' },
-    },
-
-    {
-      path: '/admin',
-      component: AdminView,
-      children: [
-        { path: '', redirect: '/admin/dashboard' },
-        { path: 'dashboard', component: AdminDashboard },
-        { path: 'courses', component: CourseManagement },
-        { path: 'topics', component: TopicManagement },
-        { path: 'users', component: UserManagement },
-        { path: 'analytics', component: Analytics },
-        { path: 'settings', component: Settings },
-        { path: 'profile', component: AdminProfile },
-      ],
-      meta: { requiresAuth: true, role: 'admin' },
-    },
-
-    { path: '/:pathMatch(.*)*', redirect: '/auth' },
-  ],
+  routes
 });
 
+router.beforeEach(async (to, from, next) => {
+  const auth = useAuthStore();
+
+  try {
+    if (auth.loading) {
+      await auth.fetchUser();
+    }
+  } catch (err) {
+    console.log("User fetch failed:", err);
+    auth.user = null;
+    return next("/auth");
+  }
+
+  const requiresAuth = to.meta.requiresAuth as boolean | undefined;
+  const roleRequired = to.meta.role as string | undefined;
+  const userRoles = auth.user?.roles || [];
+
+  if (requiresAuth && !auth.isAuthenticated) {
+    return next("/auth");
+  }
+
+  if (auth.isAuthenticated) {
+    if (roleRequired && !userRoles.includes(roleRequired)) {
+      if (userRoles.includes("admin")) return next("/admin");
+      if (userRoles.includes("peer")) return next("/");
+      return next("/auth");
+    }
+
+    if (userRoles.includes("peer") && to.path.startsWith("/admin")) {
+      return next("/");
+    }
+    if (userRoles.includes("admin") && to.path.startsWith("/peer")) {
+      return next("/admin");
+    }
+  }
+  next();
+});
 export default router;
