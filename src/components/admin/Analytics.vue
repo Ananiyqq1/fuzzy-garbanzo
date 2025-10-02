@@ -229,9 +229,97 @@ function refreshData() {
   color: #6b7280;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .analytics-page {
     padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .charts-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .summary-value {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .analytics-page {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .summary-header {
+    margin-bottom: 0.5rem;
+  }
+
+  .summary-title {
+    font-size: 0.95rem;
+  }
+
+  .summary-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .summary-icon i {
+    font-size: 1rem;
+  }
+
+  .summary-value {
+    font-size: 1.5rem;
+  }
+
+  .summary-change {
+    font-size: 0.85rem;
+  }
+
+  .chart-placeholder {
+    height: 160px;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .trend-indicator {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .analytics-page {
+    padding: 0.5rem;
+  }
+
+  .summary-value {
+    font-size: 1.25rem;
+  }
+
+  .summary-change {
+    font-size: 0.8rem;
+  }
+
+  .chart-placeholder {
+    height: 120px;
+    padding: 0.5rem;
+    font-size: 0.85rem;
   }
 }
 </style>

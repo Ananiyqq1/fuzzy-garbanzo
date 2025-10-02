@@ -210,21 +210,20 @@ onMounted(() => {
 
 .student-profile {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Montserrat', sans-serif;
-  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
   min-height: 100vh;
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
   padding: 3rem 2rem;
-  color: #111827;
   display: flex;
   justify-content: center;
 }
 
 .page-shell {
   width: 100%;
-  max-width: 960px;
-  padding: 2.5rem;
+  max-width: 1200px;
   display: flex;
   flex-direction: column;
-  gap: 2.25rem;
+  gap: 2rem;
+  position: relative;
 }
 
 .profile-card {

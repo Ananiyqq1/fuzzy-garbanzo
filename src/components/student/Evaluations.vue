@@ -65,36 +65,46 @@
         :details="ui.modals.viewEvaluation"
         @close="ui.modals.viewEvaluation = null"
       />
-
-      <AppLoading v-if="ui.loading" />
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted, reactive, computed, ref } from 'vue';
 import AppButton from '../common/AppButton.vue';
 import AppCard from '../common/AppCard.vue';
 import AppContentHeader from '../common/AppContentHeader.vue';
-import AppLoading from '../common/AppLoading.vue';
 import AppStatusBadge from '../common/AppStatusBadge.vue';
 import AppTabs from '../common/AppTabs.vue';
 import EvaluationDetailsModal from './modals/EvaluationDetailsModal.vue';
 import CourseEvaluationModal from './modals/CourseEvaluationModal.vue';
+import type { StudentEvaluation } from '../../types/student';
 
-// import CourseEvaluationModal from './modals/CourseEvaluationModal.vue';
+interface UiState {
+  loading: boolean;
+  notify: (msg: string, type?: string) => void;
+  modals: {
+    courseEvaluation: StudentEvaluation & { code: string } | null;
+    viewEvaluation: StudentEvaluation & { courseTitle: string } | null;
+  };
+}
 
-// Local UI and student data replacing stores
-const ui = reactive({
+interface StudentState {
+  allEvaluations: StudentEvaluation[];
+}
+
+type FilterValue = 'all' | 'pending' | 'completed';
+
+const ui: UiState = reactive({
   loading: false,
-  notify: (msg, type) => console.log(type ? `${type}: ${msg}` : msg),
+  notify: (msg: string, type?: string) => console.log(type ? `${type}: ${msg}` : msg),
   modals: {
     courseEvaluation: null,
     viewEvaluation: null,
   },
 });
 
-const student = reactive({
+const student: StudentState = reactive({
   allEvaluations: [
     {
       id: 1,
@@ -185,46 +195,48 @@ const student = reactive({
       ratings: { overall: 5, content: 5, instructor: 4 },
       comments: 'Loved the group project emphasis and mentorship.',
       recommend: true,
-    }
-  ],
+    },
+  ] as StudentEvaluation[]
+
 });
 
 onMounted(() => {
-  ui.loading = true;
-  setTimeout(() => (ui.loading = false), 300);
+  setTimeout(() => {
+    ui.loading = false;
+  }, 3000);
 });
 
-const activeFilter = ref('all');
+const activeFilter = ref<FilterValue>('all');
 
 const filterTabs = [
   { value: 'all', label: 'All Evaluations', icon: 'fas fa-layer-group' },
   { value: 'pending', label: 'Pending', icon: 'fas fa-hourglass-half' },
-  { value: 'completed', label: 'Completed', icon: 'fas fa-check-circle' }
-];
+  { value: 'completed', label: 'Completed', icon: 'fas fa-check-circle' },
+] as any;
 
-const statusVariants = {
+const statusVariants: Record<string, string> = {
   pending: 'warning',
-  completed: 'success'
+  completed: 'success',
 };
 
-const filteredEvaluations = computed(() => {
+const filteredEvaluations = computed<StudentEvaluation[]>(() => {
   if (activeFilter.value === 'all') {
     return student.allEvaluations;
   }
-  return student.allEvaluations.filter(evaluation => 
-    evaluation.status === activeFilter.value
+  return student.allEvaluations.filter((evaluation) =>
+    evaluation.status === activeFilter.value,
   );
 });
 
-function handlePrimaryAction(evaluation) {
+const handlePrimaryAction = (evaluation: StudentEvaluation): void => {
   if (evaluation.status === 'pending') {
     openCourseEvaluation(evaluation);
   } else {
     viewSubmittedEvaluation(evaluation);
   }
-}
+};
 
-function handleSecondaryAction(evaluation) {
+const handleSecondaryAction = (evaluation: StudentEvaluation): void => {
   const label = (evaluation.secondaryAction || '').toLowerCase();
 
   if (label.includes('edit')) {
@@ -233,53 +245,52 @@ function handleSecondaryAction(evaluation) {
   }
 
   viewSubmittedEvaluation(evaluation);
-}
+};
 
-function openCourseEvaluation(course) {
+const openCourseEvaluation = (course: StudentEvaluation): void => {
   ui.modals.courseEvaluation = {
     ...course,
     title: course.title,
     code: course.courseCode,
   };
-}
+};
 
-async function submitCourseEvaluation(form) {
+const submitCourseEvaluation = async (form: any): Promise<void> => {
   if (!ui.modals.courseEvaluation) return;
 
   ui.modals.courseEvaluation = null;
   ui.notify('Course evaluation submitted successfully!', 'success');
-}
+};
 
-function viewSubmittedEvaluation(evaluation) {
+const viewSubmittedEvaluation = (evaluation: StudentEvaluation): void => {
   ui.modals.viewEvaluation = {
     ...evaluation,
     courseTitle: evaluation.title,
   };
-}
+};
 </script>
 
 <style scoped>
 .evaluations {
   min-height: 100vh;
   background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  padding: 2rem;
   display: flex;
   justify-content: center;
-  padding: 3rem 2rem;
 }
 
 .page-shell {
   width: 100%;
   max-width: 1280px;
-  padding: 2.25rem 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  position: relative;
 }
 
 .evaluations :deep(.tab-list) {
   justify-content: center;
   gap: 0.75rem;
-  background: transparent;
   border: none;
   padding: 0;
 }
@@ -424,8 +435,13 @@ function viewSubmittedEvaluation(evaluation) {
 }
 
 .evaluation-card :deep(.app-status-badge) {
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.5rem 1rem 0.75rem;
+  border-radius: 0 1rem 0 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   box-shadow: 0 10px 25px -15px rgba(17, 24, 39, 0.35);
 }
 
@@ -440,19 +456,100 @@ function viewSubmittedEvaluation(evaluation) {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .evaluations {
     padding: 1.5rem;
   }
 
+  .page-shell {
+    gap: 1.5rem;
+  }
+
+  .evaluation-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .evaluation-card {
+    padding: 1.25rem;
+  }
+
+  .evaluation-header {
+    gap: 1rem;
+  }
+
+  .evaluation-actions {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .evaluations {
+    padding: 1rem;
+  }
+
+  .page-shell {
+    gap: 1rem;
+  }
+
   .evaluation-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .evaluation-card {
+    padding: 1rem;
   }
 
   .evaluation-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+  }
+
+  .evaluation-title-group h3 {
+    font-size: 1rem;
+  }
+
+  .evaluation-meta {
+    font-size: 0.85rem;
+  }
+
+  .evaluation-body {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .progress-bar {
+    height: 6px;
+  }
+
+  .evaluation-actions {
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
+
+  .evaluation-actions :deep(.btn) {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .evaluations {
+    padding: 0.5rem;
+  }
+
+  .evaluation-card {
+    padding: 0.75rem;
+  }
+
+  .evaluation-title-group h3 {
+    font-size: 0.95rem;
+  }
+
+  .evaluation-body {
+    font-size: 0.85rem;
   }
 }
 </style>

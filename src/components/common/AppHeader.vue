@@ -28,15 +28,7 @@
 
       <!-- Header Actions -->
       <div class="header-actions">
-        <!-- Mobile Menu Toggle -->
-        <button 
-          v-if="showMobileMenu" 
-          class="action-btn mobile-menu-btn"
-          @click="$emit('toggle-sidebar')"
-        >
-          <i class="fas fa-bars"></i>
-        </button>
-
+        
         <!-- Notifications -->
         <button v-if="showNotifications" class="action-btn">
           <i class="fas fa-bell"></i>
@@ -47,17 +39,29 @@
         <button v-if="showThemeToggle" class="action-btn" @click="$emit('toggle-theme')">
           <i :class="isDarkMode ? 'fas fa-sun' : 'fas fa-moon'"></i>
         </button>
-
+        
         <!-- User Profile -->
         <div v-if="showProfile" class="user-profile" @click="$emit('toggle-profile')">
           <img 
-            :src="userAvatar || '/default-avatar.png'" 
-            :alt="userName || 'User'"
-            class="user-avatar"
+          :src="userAvatar || '/default-avatar.png'" 
+          :alt="userName || 'User'"
+          class="user-avatar"
           />
           <span class="user-name">{{ userName || 'User' }}</span>
           <i class="fas fa-chevron-down"></i>
         </div>
+
+        <!-- Mobile Menu Toggle -->
+        <button 
+          v-if="showMobileMenu" 
+          class="action-btn mobile-menu-btn"
+          @click="$emit('toggle-sidebar')"
+        >
+          <i class="fas fa-bars"></i>
+        </button>
+
+
+
       </div>
     </div>
   </header>

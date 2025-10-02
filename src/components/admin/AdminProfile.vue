@@ -534,45 +534,127 @@ button.danger:hover {
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .admin-profile {
+    padding: 1.5rem;
+  }
+
+  .profile-container {
+    padding: 2rem;
+  }
+
+  .admin-section {
+    padding: 1.5rem;
+  }
+
+  .profile-details {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+}
+
 @media (max-width: 768px) {
+  .admin-profile {
+    padding: 1rem;
+  }
+
+  .profile-header-section h1 {
+    font-size: 2rem;
+  }
+
+  .profile-container {
+    padding: 1.5rem;
+  }
+
   .profile-header {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .profile-photo {
     margin-right: 0;
-    margin-bottom: 20px;
-  }
-  
-  .profile-details {
-    grid-template-columns: 1fr;
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-  }
-  
-  button {
-    width: 100%;
+    margin-bottom: 1rem;
+    width: 100px;
+    height: 100px;
   }
 
-  .profile-container {
-    padding: 25px;
+  .profile-details {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .detail-card {
+    padding: 1rem;
   }
 
   .admin-section {
-    padding: 20px;
+    padding: 1rem;
   }
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  button {
+    width: 100%;
   }
 }
 
 @media (max-width: 480px) {
+  .admin-profile {
+    padding: 0.5rem;
+  }
+
+  .profile-header-section h1 {
+    font-size: 1.75rem;
+  }
+
+  .profile-container {
+    padding: 1rem;
+  }
+
+  .profile-photo {
+    width: 80px;
+    height: 80px;
+  }
+
+  .profile-info h2 {
+    font-size: 1.5rem;
+  }
+
+  .admin-section {
+    padding: 0.75rem;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
   }
 }
 </style>

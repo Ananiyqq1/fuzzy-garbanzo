@@ -1,26 +1,28 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
-const SignInUp = () => import('../views/login/LoginView.vue');
-const OTP = () => import('../components/auth/OTP.vue');
-const ForgotPassword = () => import('../components/auth/ForgetPassword.vue');
+type LazyView = () => Promise<typeof import('*.vue')>;
 
-const StudentView = () => import('../views/student/StudentView.vue');
-const StudentDashboard = () => import('../components/student/StudentDashboard.vue');
-const MySessions = () => import('../components/student/MySessions.vue');
-const Resources = () => import('../components/student/Resources.vue');
-const StudyRooms = () => import('../components/student/StudyRooms.vue');
-const Evaluations = () => import('../components/student/Evaluations.vue');
-const StudentPreferences = () => import('../components/student/StudentPreferences.vue');
-const StudentProfile = () => import('../components/student/StudentProfile.vue');
+const SignInUp: LazyView = () => import('../views/login/LoginView.vue');
+const OTP: LazyView = () => import('../components/auth/OTP.vue');
+const ForgotPassword: LazyView = () => import('../components/auth/ForgetPassword.vue');
 
-const AdminView = () => import('../views/admin/AdminView.vue');
-const AdminDashboard = () => import('../components/admin/AdminDashboard.vue');
-const CourseManagement = () => import('../components/admin/CourseManagement.vue');
-const TopicManagement = () => import('../components/admin/TopicManagement.vue');
-const UserManagement = () => import('../components/admin/UserManagement.vue');
-const Analytics = () => import('../components/admin/Analytics.vue');
-const Settings = () => import('../components/admin/Settings.vue');
-const AdminProfile = () => import('../components/admin/AdminProfile.vue');
+const StudentView: LazyView = () => import('../views/student/StudentView.vue');
+const StudentDashboard: LazyView = () => import('../components/student/StudentDashboard.vue');
+const MySessions: LazyView = () => import('../components/student/MySessions.vue');
+const Resources: LazyView = () => import('../components/student/Resources.vue');
+const StudyRooms: LazyView = () => import('../components/student/StudyRooms.vue');
+const Evaluations: LazyView = () => import('../components/student/Evaluations.vue');
+const StudentPreferences: LazyView = () => import('../components/student/StudentPreferences.vue');
+const StudentProfile: LazyView = () => import('../components/student/StudentProfile.vue');
+
+const AdminView: LazyView = () => import('../views/admin/AdminView.vue');
+const AdminDashboard: LazyView = () => import('../components/admin/AdminDashboard.vue');
+const CourseManagement: LazyView = () => import('../components/admin/CourseManagement.vue');
+const TopicManagement: LazyView = () => import('../components/admin/TopicManagement.vue');
+const UserManagement: LazyView = () => import('../components/admin/UserManagement.vue');
+const Analytics: LazyView = () => import('../components/admin/Analytics.vue');
+const Settings: LazyView = () => import('../components/admin/Settings.vue');
+const AdminProfile: LazyView = () => import('../components/admin/AdminProfile.vue');
 
 const router = createRouter({
   history: createWebHistory(),

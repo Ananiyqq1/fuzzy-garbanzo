@@ -1,6 +1,13 @@
 <template>
   <div class="my-sessions">
     <div class="page-shell">
+      <AppLoading
+        :show="ui.loading"
+        size="large"
+        :duration="3000"
+        @finished="ui.loading = false"
+      />
+
       <div class="header-row">
         <AppContentHeader
           title="My Study Sessions"
@@ -69,6 +76,7 @@
           </template>
         </AppCard>
       </div>
+
     </div>
 
     <div class="page-overlays">
@@ -100,13 +108,11 @@
         @close="ui.modals.createSession = false"
         @submit="handleCreateSession"
       />
-
-      <AppLoading v-if="ui.loading" />
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted, reactive, computed, ref } from 'vue';
 import AppButton from '../common/AppButton.vue';
 import AppCard from '../common/AppCard.vue';
@@ -118,11 +124,36 @@ import SessionDetailsModal from './modals/SessionDetailsModal.vue';
 import SessionFeedbackModal from './modals/SessionFeedbackModal.vue';
 import SessionMaterialsModal from './modals/SessionMaterialsModal.vue';
 import CreateSessionModal from './modals/CreateSessionModal.vue';
+import type { StudentSession, SessionFeedback } from '../../types/student';
 
-// Local UI and student state replacing stores
-const ui = reactive({
+interface UiState {
+  loading: boolean;
+  notify: (msg: string, type?: string) => void;
+  modals: {
+    sessionDetails: StudentSession | null;
+    sessionMaterials: (StudentSession & { date: string; materials: any[] }) | null;
+    sessionFeedback: (StudentSession & { feedback: SessionFeedback }) | null;
+    createSession: boolean;
+  };
+}
+
+interface StudentState {
+  allSessions: StudentSession[];
+}
+
+interface CreateSessionForm {
+  title: string;
+  date?: string;
+  time?: string;
+  mode: string;
+  description: string;
+}
+
+type FilterValue = 'all' | 'upcoming' | 'ongoing' | 'completed';
+
+const ui: UiState = reactive({
   loading: false,
-  notify: (msg, type) => console.log(type ? `${type}: ${msg}` : msg),
+  notify: (msg: string, type?: string) => console.log(type ? `${type}: ${msg}` : msg),
   modals: {
     sessionDetails: null,
     sessionMaterials: null,
@@ -131,7 +162,7 @@ const ui = reactive({
   },
 });
 
-const student = reactive({
+const student: StudentState = reactive({
   allSessions: [
     {
       id: 1,
@@ -223,92 +254,95 @@ const student = reactive({
       ],
       feedback: { rating: 5, comments: 'Excellent explanations and pacing.', recommend: 'yes' },
     },
-  ],
+  ] as StudentSession[]
 });
 
-const activeFilter = ref('all');
+const activeFilter = ref<FilterValue>('all');
 
 const filterTabs = [
   { value: 'all', label: 'All Sessions', icon: 'fas fa-layer-group' },
   { value: 'upcoming', label: 'Upcoming', icon: 'fas fa-hourglass-half' },
   { value: 'ongoing', label: 'Ongoing', icon: 'fas fa-play-circle' },
-  { value: 'completed', label: 'Completed', icon: 'fas fa-check-circle' }
-];
+  { value: 'completed', label: 'Completed', icon: 'fas fa-check-circle' },
+] as any;
 
-const statusVariants = {
+const statusVariants: Record<string, string> = {
   upcoming: 'warning',
   ongoing: 'success',
-  completed: 'neutral'
+  completed: 'neutral',
 };
 
-const filteredSessions = computed(() => {
+const filteredSessions = computed<StudentSession[]>(() => {
   if (activeFilter.value === 'all') {
     return student.allSessions;
   }
-  return student.allSessions.filter(session => 
-    session.status.toLowerCase() === activeFilter.value
+  return student.allSessions.filter((session) =>
+    session.status.toLowerCase() === activeFilter.value,
   );
 });
 
-onMounted(() => { loadSessions(); });
+onMounted(() => {
+  loadSessions();
+});
 
-function loadSessions() { ui.loading = true; setTimeout(() => (ui.loading = false), 300); }
+const loadSessions = (): void => {
+  ui.loading = true;
+};
 
-function openDetails(session) {
+const openDetails = (session: StudentSession): void => {
   ui.modals.sessionDetails = { ...session };
-}
+};
 
-function openMaterials(session) {
+const openMaterials = (session: StudentSession): void => {
   ui.modals.sessionMaterials = {
     ...session,
     date: session.datetime,
     materials: session.materials ?? [],
   };
-}
+};
 
-function openFeedback(session) {
+const openFeedback = (session: StudentSession): void => {
   ui.modals.sessionFeedback = {
     ...session,
     feedback: session.feedback || { rating: 0, comments: '', recommend: 'yes' },
   };
-}
+};
 
-function handlePrimaryAction(session) {
+const handlePrimaryAction = (session: StudentSession): void => {
   if (session.status === 'Completed') {
     openMaterials(session);
     return;
   }
-
   openDetails(session);
-}
+};
 
-function getPrimaryActionText(session) {
+const getPrimaryActionText = (session: StudentSession): string => {
   if (session.status === 'Upcoming') return 'Start Session';
   if (session.status === 'Ongoing') return 'Join Now';
   if (session.status === 'Completed') return 'View Materials';
   return 'Action';
-}
+};
 
-function join(session) {
+const join = (session: StudentSession): void => {
   ui.notify(`Joining session: ${session.title}`);
   ui.modals.sessionDetails = null;
-}
+};
 
-function handleMaterialAction(item) {
+const handleMaterialAction = (item: { name: string; action?: string }): void => {
   ui.notify(`${item.action || 'Download'} · ${item.name}`);
-}
+};
 
-function submitFeedback(payload) {
+const submitFeedback = (payload: any): void => {
   ui.modals.sessionFeedback = null;
   ui.notify('Feedback submitted successfully!', 'success');
-}
+};
 
-function openCreateSession() {
+const openCreateSession = (): void => {
   ui.modals.createSession = true;
-}
+};
 
-function handleCreateSession(form) {
-  const newSession = {
+const handleCreateSession = (form: CreateSessionForm): void => {
+  const newSession: StudentSession = {
     id: Date.now(),
     title: form.title,
     datetime: `${form.date || 'TBD'}${form.time ? ` · ${form.time}` : ''}`,
@@ -324,8 +358,7 @@ function handleCreateSession(form) {
   student.allSessions.unshift(newSession);
   ui.modals.createSession = false;
   ui.notify(`Session "${form.title}" created successfully!`, 'success');
-}
-
+};
 </script>
 
 <style scoped>
@@ -344,31 +377,31 @@ function handleCreateSession(form) {
 .my-sessions {
   min-height: 100vh;
   background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  padding: 2rem;
   display: flex;
   justify-content: center;
-  padding: 3rem 2rem;
 }
+
 .page-shell {
   width: 100%;
   max-width: 1280px;
-  padding: 2.25rem 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  position: relative;
 }
+
 
 .sessions-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 1.5rem;
 }
-
 .my-sessions :deep(.tab-list) {
   display: flex;
   justify-content: center;
   gap: 0.75rem;
   background: transparent;
-  border: none;
   padding: 0;
   flex-wrap: wrap;
 }
@@ -424,15 +457,15 @@ function handleCreateSession(form) {
   position: absolute;
   top: 0;
   right: 0;
-  padding: 0.5rem 1rem 0.75rem;
 }
 
 .session-status-badge :deep(.app-status-badge) {
-  border-radius: 0 1rem 0 0.75rem;
+  border-radius: 0 1rem 0 1rem;
   box-shadow: none;
   font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
+  font-weight: 700;
 }
 
 .session-header {
@@ -453,7 +486,7 @@ function handleCreateSession(form) {
   font-weight: 600;
   margin: 0;
   color: #111827;
-  padding-right: 4rem;
+  padding-right: 2rem;
 }
 
 .session-meta {
@@ -530,13 +563,22 @@ function handleCreateSession(form) {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .my-sessions {
     padding: 1.5rem;
   }
 
+  .page-shell {
+    gap: 1.5rem;
+  }
+
   .sessions-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .session-card {
+    padding: 1.25rem;
   }
 
   .session-header {
@@ -546,8 +588,77 @@ function handleCreateSession(form) {
   }
 
   .session-actions {
+    flex-direction: column;
     width: 100%;
-    justify-content: flex-start;
+    gap: 0.5rem;
+  }
+
+  .session-actions :deep(.btn) {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .my-sessions {
+    padding: 1rem;
+  }
+
+  .page-shell {
+    gap: 1rem;
+  }
+
+  .header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .create-session-btn {
+    align-self: flex-start;
+  }
+
+  .sessions-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .session-card {
+    padding: 1rem;
+  }
+
+  .session-status-badge :deep(.app-status-badge) {
+    font-size: 0.65rem;
+    padding: 0.3rem 0.6rem 0.45rem;
+  }
+
+  .session-header-text h3 {
+    font-size: 1rem;
+  }
+
+  .session-meta {
+    font-size: 0.85rem;
+  }
+
+  .session-actions {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .my-sessions {
+    padding: 0.5rem;
+  }
+
+  .session-card {
+    padding: 0.75rem;
+  }
+
+  .session-header-text h3 {
+    font-size: 0.95rem;
+  }
+
+  .session-body {
+    font-size: 0.9rem;
   }
 }
 </style>

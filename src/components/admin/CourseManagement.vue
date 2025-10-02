@@ -249,9 +249,94 @@ function exportCourses() {
   color: #047857;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .course-management {
     padding: 1.5rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .course-list {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .course-management {
+    padding: 1rem;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .form-section {
+    padding: 1.5rem;
+  }
+
+  .form-grid {
+    gap: 1rem;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .course-list {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .course-card {
+    padding: 1rem;
+  }
+
+  .course-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .course-actions button {
+    width: 100%;
+    font-size: 0.8rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .course-management {
+    padding: 0.5rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .form-section {
+    padding: 1rem;
+  }
+
+  .course-card {
+    padding: 0.75rem;
+  }
+
+  .course-title {
+    font-size: 1rem;
+  }
+
+  .course-meta {
+    font-size: 0.85rem;
   }
 }
 </style>

@@ -15,51 +15,42 @@
   </button>
 </template>
 
-<script setup>
-const props = defineProps({
-  type: { 
-    type: String, 
-    default: 'button' 
-  },
-  disabled: { 
-    type: Boolean, 
-    default: false 
-  },
-  variant: { 
-    type: String, 
-    default: 'primary',
-    validator: (value) => ['primary', 'secondary', 'ghost', 'danger', 'success'].includes(value)
-  },
-  size: {
-    type: String,
-    default: 'medium',
-    validator: (value) => ['small', 'medium', 'large'].includes(value)
-  },
-  icon: {
-    type: String,
-    default: ''
-  },
-  rightIcon: {
-    type: String,
-    default: ''
-  },
-  isLoading: {
-    type: Boolean,
-    default: false
-  },
-  fullWidth: {
-    type: Boolean,
-    default: false
-  }
-})
+<script setup lang="ts">
+type ButtonType = 'button' | 'submit' | 'reset';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
+type ButtonSize = 'small' | 'medium' | 'large';
 
-const emit = defineEmits(['click'])
-
-const handleClick = (event) => {
-  if (!props.disabled && !props.isLoading) {
-    emit('click', event)
-  }
+interface AppButtonProps {
+  type?: ButtonType;
+  disabled?: boolean;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  icon?: string;
+  rightIcon?: string;
+  isLoading?: boolean;
+  fullWidth?: boolean;
 }
+
+const props = withDefaults(defineProps<AppButtonProps>(), {
+  type: 'button',
+  disabled: false,
+  variant: 'primary',
+  size: 'medium',
+  icon: '',
+  rightIcon: '',
+  isLoading: false,
+  fullWidth: false,
+});
+
+const emit = defineEmits<{
+  (event: 'click', value: MouseEvent): void;
+}>();
+
+const handleClick = (event: MouseEvent) => {
+  if (!props.disabled && !props.isLoading) {
+    emit('click', event);
+  }
+};
 </script>
 
 <style scoped>

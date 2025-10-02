@@ -10,7 +10,6 @@
         :aria-selected="tab.value === currentValue"
         @click="selectTab(tab.value)"
       >
-        <i v-if="tab.icon" :class="tab.icon"></i>
         <span>{{ tab.label }}</span>
         <span v-if="tab.badge" class="tab-badge">{{ tab.badge }}</span>
       </button>
@@ -21,32 +20,40 @@
   </div>
 </template>
 
-<script setup>
-import { provide, computed } from 'vue'
+<script setup lang="ts">
+import { provide, computed } from 'vue';
 
-const props = defineProps({
-  modelValue: {
-    type: String,
-    default: ''
-  },
-  tabs: {
-    type: Array,
-    default: () => []
-  }
-})
+interface TabItem {
+  value: string;
+  label: string;
+  icon?: string;
+  badge?: string | number;
+}
 
-const emit = defineEmits(['update:modelValue'])
+interface AppTabsProps {
+  modelValue?: string;
+  tabs?: TabItem[];
+}
+
+const props = withDefaults(defineProps<AppTabsProps>(), {
+  modelValue: '',
+  tabs: () => [],
+});
+
+const emit = defineEmits<{
+  (event: 'update:modelValue', value: string): void;
+}>();
 
 const currentValue = computed({
   get: () => props.modelValue || (props.tabs[0]?.value ?? ''),
-  set: (value) => emit('update:modelValue', value)
-})
+  set: (value: string) => emit('update:modelValue', value),
+});
 
-const selectTab = (value) => {
-  currentValue.value = value
-}
+const selectTab = (value: string): void => {
+  currentValue.value = value;
+};
 
-provide('appTabsValue', currentValue)
+provide('appTabsValue', currentValue);
 </script>
 
 <style scoped>
@@ -61,20 +68,26 @@ provide('appTabsValue', currentValue)
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1.875rem;
+  margin-bottom: 30px;
 }
 
 .tab-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
+  padding: 10px 20px;
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(229, 231, 235, 0.5);
-  border-radius: 1.25rem;
-  color: #374151;
+  border-radius: 20px;
+  margin: 0 10px 10px;
+  color: #4b5563;
+  font-family: var(--font-family);
+  font-size: 0.875rem;
   font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -86,7 +99,6 @@ provide('appTabsValue', currentValue)
 .tab-trigger.active {
   background: #111827;
   color: #ffffff;
-  box-shadow: 0 10px 25px -5px rgba(17, 24, 39, 0.25);
 }
 
 .tab-badge {

@@ -22,12 +22,20 @@
             <path
               fill-rule="evenodd"
               d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-              clip-rule="evenodd"
             />
           </svg>
         </div>
 
         <div class="header-actions">
+          <button class="action-btn" @click="navigateToProfile">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </button>
           <button class="action-btn">
             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
               <path
@@ -35,11 +43,16 @@
               />
             </svg>
           </button>
-          <button class="action-btn" @click="navigateToProfile">
+          <button
+            v-if="isMobile"
+            class="action-btn menu-toggle"
+            type="button"
+            @click="toggleSidebar"
+          >
             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fill-rule="evenodd"
-                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
                 clip-rule="evenodd"
               />
             </svg>
@@ -50,8 +63,15 @@
 
     <!-- Main Container -->
     <div class="main-container">
+      <!-- Sidebar Backdrop -->
+      <div 
+        v-if="isMobile && sidebarOpen" 
+        class="sidebar-backdrop" 
+        @click="sidebarOpen = false"
+      ></div>
+
       <!-- Sidebar -->
-      <aside class="sidebar">
+      <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
         <nav>
           <ul class="nav-list">
             <li v-for="item in navItems" :key="item.path">
@@ -85,16 +105,40 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const searchQuery = ref('')
+const isMobile = ref(false)
+const sidebarOpen = ref(false)
+
+let resizeListener
 
 // Methods
 const navigateToProfile = () => {
   router.push('/admin/profile')
 }
+
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value
+}
+
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 768
+}
+
+onMounted(() => {
+  checkMobile()
+  resizeListener = () => checkMobile()
+  window.addEventListener('resize', resizeListener)
+})
+
+onUnmounted(() => {
+  if (resizeListener) {
+    window.removeEventListener('resize', resizeListener)
+  }
+})
 
 const navItems = [
   {
@@ -255,6 +299,10 @@ const navItems = [
   transition: background-color 0.2s ease;
 }
 
+.menu-toggle {
+  display: none;
+}
+
 .action-btn:hover {
   background: #e5e7eb;
 }
@@ -295,7 +343,6 @@ const navItems = [
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
 .nav-item {
@@ -397,14 +444,20 @@ button.ghost:hover {
   }
 
   .sidebar {
-    position: static;
+    width: 100%;
+    max-width: none;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
   }
 }
 
 @media (max-width: 768px) {
   .header-container {
-    flex-direction: column;
-    gap: 1rem;
+    flex-direction: row;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
   }
 
   .search-container {
@@ -414,6 +467,46 @@ button.ghost:hover {
 
   .main-container {
     padding: 1rem;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 5.5rem;
+    left: 0;
+    width: 260px;
+    height: calc(100vh - 5.5rem);
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    border-radius: 1.5rem;
+    border: 1px solid rgba(229, 231, 235, 0.5);
+    padding: 2.5rem 1.5rem 2rem;
+    margin-top: 0;
+  }
+
+  .sidebar .nav-list {
+    margin-top: 1rem;
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(17, 24, 39, 0.45);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+  }
+
+  .menu-toggle {
+    order: 2;
   }
 }
 </style>

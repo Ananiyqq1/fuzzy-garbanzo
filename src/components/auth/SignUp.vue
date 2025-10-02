@@ -14,27 +14,31 @@
     <input 
       type="text" 
       id="signup-name" 
+      name="fullName"
       v-model="name"
       placeholder="Full Name" 
       required 
       minlength="2"
+      autocomplete="name"
     />
     <div class="error-message" :class="{ show: nameError }">
       {{ nameError }}
     </div>
     
-    <!-- Student ID Input -->
-    <label for="signup-id">Student ID</label>
+    <!-- Username Input -->
+    <label for="signup-username">Username</label>
     <input 
       type="text" 
-      id="signup-id" 
-      v-model="idNumber"
-      placeholder="Student ID"
+      id="signup-username" 
+      name="username"
+      v-model="username"
+      placeholder="Username"
       required 
-      pattern="[A-Za-z0-9]+"
+      minlength="3"
+      autocomplete="off"
     />
-    <div class="error-message" :class="{ show: idError }">
-      {{ idError }}
+    <div class="error-message" :class="{ show: usernameError }">
+      {{ usernameError }}
     </div>
     
     <!-- Email Input -->
@@ -42,9 +46,12 @@
     <input 
       type="email" 
       id="signup-email" 
+      name="instituteEmail"
       v-model="email"
       placeholder="Institute Email" 
       required 
+      autocomplete="email"
+      inputmode="email"
     />
     <div class="error-message" :class="{ show: emailError }">
       {{ emailError }}
@@ -77,7 +84,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 const name = ref('')
-const idNumber = ref('')
+const username = ref('')
 const email = ref('')
 const password = ref('')
 const isLoading = ref(false)
@@ -91,9 +98,9 @@ const nameError = computed(() => {
   return ''
 })
 
-const idError = computed(() => {
-  if (!idNumber.value) return ''
-  if (!/^[A-Za-z0-9]+$/.test(idNumber.value)) return 'Please enter a valid ID number.'
+const usernameError = computed(() => {
+  if (!username.value) return ''
+  if (username.value.trim().length < 3) return 'Username must be at least 3 characters long.'
   return ''
 })
 
@@ -110,8 +117,8 @@ const passwordError = computed(() => {
 })
 
 const isFormValid = computed(() => {
-  return name.value && idNumber.value && email.value && password.value && 
-         !nameError.value && !idError.value && !emailError.value && !passwordError.value
+  return name.value && username.value && email.value && password.value &&
+    !nameError.value && !usernameError.value && !emailError.value && !passwordError.value
 })
 
 // Methods
