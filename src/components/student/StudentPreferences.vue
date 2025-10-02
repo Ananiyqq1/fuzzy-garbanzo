@@ -1,11 +1,9 @@
 <template>
   <div class="preferences-page">
     <div class="page-shell">
-      <AppContentHeader
-        title="Select Your Course Preferences"
+      <AppContentHeader title="Select Your Course Preferences"
         subtitle="Choose the courses you're interested in to personalize your learning experience. Select at least 3 to continue."
-        align="center"
-      />
+        align="center" />
 
       <div class="progress-card">
         <div class="progress-text">
@@ -24,14 +22,8 @@
       <AppTabs v-model="activeFilter" :tabs="filters" />
 
       <div class="courses-grid">
-        <AppCard
-          v-for="course in filteredCourses"
-          :key="course.title"
-          class="course-card"
-          variant="elevated"
-          :clickable="true"
-          @click="toggleSelection(course.title)"
-        >
+        <AppCard v-for="course in filteredCourses" :key="course.title" class="course-card" variant="elevated"
+          :clickable="true" @click="toggleSelection(course.title)">
           <template #header>
             <div class="course-header">
               <div class="course-icon">
@@ -42,10 +34,7 @@
           </template>
           <p class="course-description">{{ course.description }}</p>
           <template #footer>
-            <AppButton
-              size="small"
-              :variant="selectedCourses.includes(course.title) ? 'primary' : 'secondary'"
-            >
+            <AppButton size="small" :variant="selectedCourses.includes(course.title) ? 'primary' : 'secondary'">
               {{ selectedCourses.includes(course.title) ? 'Selected' : 'Select Course' }}
             </AppButton>
           </template>
@@ -69,8 +58,12 @@ import AppButton from '../common/AppButton.vue';
 import AppCard from '../common/AppCard.vue';
 import AppContentHeader from '../common/AppContentHeader.vue';
 import AppTabs from '../common/AppTabs.vue';
-
+import { useAuthStore } from '@/stores/useAuthStore';
+import SignUp from '../auth/SignUp.vue';
+import { signUp } from '../auth/api/SignUp';
+const auth = useAuthStore()
 const router = useRouter();
+const userInfo = auth.tempPayload;
 const selectedCourses = ref([]);
 const activeFilter = ref('all');
 const maxSelections = 6;
@@ -150,15 +143,39 @@ function skip() {
   router.push('/student/dashboard');
 }
 
-function continueOtp() {
+async function continueOtp() {
+   if (!userInfo) { 
+    console.warn('No signup payload found, redirecting to /auth');
+    router.push('/auth');
+    return;
+  }
   if (selectedCount.value < minSelections) {
     alert(`Please select at least ${minSelections} courses to continue.`);
     return;
   }
-  
+
   console.log('Selected courses:', selectedCourses.value);
-  alert(`Success! ${selectedCount.value} courses selected. Redirecting to otp verification...`);
-  router.push('/otp');
+  var res = await signUp({
+    ...userInfo,
+    interests: selectedCourses.value,
+    bio: "Please add a field to add bio Ananiya"
+  })
+  //add logics here like when the email is registered before and so
+  if (res.status !== 200) {
+    router.push("/auth")
+    return;
+  }
+  if (res.data.verification_required) {
+    router.push('/otp/${res.data.otp_session_id}}');
+    return
+  }
+  else if (!res.data.verification_required) {
+    await auth.fetchUser()
+    router.push('/');
+  }
+  else
+    router.push("/auth")
+  return;
 }
 </script>
 
@@ -315,7 +332,8 @@ h1 {
   font-weight: normal;
 }
 
-.filter-btn:hover, .filter-btn.active {
+.filter-btn:hover,
+.filter-btn.active {
   background: #111827;
   color: white;
 }
@@ -324,11 +342,11 @@ h1 {
   .courses-grid {
     grid-template-columns: 1fr;
   }
-  
+
   h1 {
     font-size: 2rem;
   }
-  
+
   .action-buttons {
     flex-direction: column;
     align-items: center;

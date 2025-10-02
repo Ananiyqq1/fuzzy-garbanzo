@@ -55,6 +55,7 @@ const selectedRole = ref('student')
 const isLoading = ref(false)
 
 const router = useRouter()
+const auth = useAuthStore()
 
 // Validation
 const emailError = computed(() => {
@@ -99,7 +100,6 @@ async function submit() {
       router.push(`/auth/otp/${result.data.otp_session_id}`);
       return;
     }
-    const auth = useAuthStore()
     await auth.fetchUser()
     if (auth.hasRole("admin")) {
       router.push("/admin");
@@ -112,13 +112,7 @@ async function submit() {
     } else {
       router.push("/");
       return;
-    }
-    // Mock navigation by role
-    // if (selectedRole.value === 'admin') {
-    //   router.push('/admin/dashboard')
-    // } else {
-    //   router.push('/student/dashboard')
-    // }
+    }  
   } catch (error) {
     console.error('Sign in error:', error)
   } finally {

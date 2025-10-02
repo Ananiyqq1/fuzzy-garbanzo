@@ -31,6 +31,7 @@ const routes = [
       { path: '', component: SignInUp },
       { path: 'otp/:session_id', component: OTP, meta: { title: "Please check your email" }, },
       { path: 'forgot-password', component: ForgotPassword },
+      { path: 'preferences', component: StudentPreferences, name: "StudentPreferences" }
     ]
   },
 
@@ -52,7 +53,6 @@ const routes = [
       { path: 'study-rooms', component: StudyRooms, name: "StudyRooms" },
       { path: 'evaluations', component: Evaluations, name: "Evaluations" },
       { path: 'profile', component: StudentProfile, name: "StudentProfile" },
-      { path: 'preferences', component: StudentPreferences, name: "StudentPreferences" },
     ],
     meta: { requiresAuth: true, role: 'peer' },
   },

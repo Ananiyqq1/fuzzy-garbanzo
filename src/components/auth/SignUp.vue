@@ -23,27 +23,40 @@
       {{ nameError }}
     </div>
     
-    <!-- Student ID Input -->
-    <label for="signup-id">Student ID</label>
+    <!-- user name Input -->
+    <label for="user-name">User Name</label>
     <input 
       type="text" 
-      id="signup-id" 
-      v-model="idNumber"
-      placeholder="Student ID"
+      id="user-name" 
+      v-model="userName"
+      placeholder="User Name"
       required 
-      pattern="[A-Za-z0-9]+"
+      pattern="[A-Za-z0-9]+" 
     />
-    <div class="error-message" :class="{ show: idError }">
-      {{ idError }}
+    <div class="error-message" :class="{ show: userNameError }">
+      {{ userNameError }}
     </div>
     
     <!-- Email Input -->
-    <label for="signup-email">Institute Email</label>
+    <label for="signup-institute-email">Institute Email</label>
+    <input 
+      type="email" 
+      id="signup-institute-email" 
+      v-model="instituteEmail"
+      placeholder="Institute Email" 
+      required 
+    />
+    <div class="error-message" :class="{ show: instituteEmailError }">
+      {{ instituteEmailError }}
+    </div>
+
+    <!-- Email Input -->
+    <label for="signup-email">Email</label>
     <input 
       type="email" 
       id="signup-email" 
       v-model="email"
-      placeholder="Institute Email" 
+      placeholder="Email" 
       required 
     />
     <div class="error-message" :class="{ show: emailError }">
@@ -73,11 +86,13 @@
 </template>
 
 <script setup>
+import { useAuthStore } from '@/stores/useAuthStore'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 const name = ref('')
-const idNumber = ref('')
+const userName = ref('')
+const instituteEmail = ref('')
 const email = ref('')
 const password = ref('')
 const isLoading = ref(false)
@@ -91,15 +106,20 @@ const nameError = computed(() => {
   return ''
 })
 
-const idError = computed(() => {
-  if (!idNumber.value) return ''
-  if (!/^[A-Za-z0-9]+$/.test(idNumber.value)) return 'Please enter a valid ID number.'
+const userNameError = computed(() => {
+  if (!userName.value) return ''
+  if (!/^[A-Za-z0-9]+$/.test(userName.value)) return 'Please enter a valid user name.'
   return ''
 })
 
 const emailError = computed(() => {
   if (!email.value) return ''
   if (!email.value.includes('@')) return 'Please enter a valid email address.'
+  return ''
+})
+const instituteEmailError = computed(() => {
+  if (!instituteEmail.value) return ''
+  if (!instituteEmail.value.includes('@hilcoeschool.com')) return 'Please enter a valid hilcoe email address.'
   return ''
 })
 
@@ -110,8 +130,8 @@ const passwordError = computed(() => {
 })
 
 const isFormValid = computed(() => {
-  return name.value && idNumber.value && email.value && password.value && 
-         !nameError.value && !idError.value && !emailError.value && !passwordError.value
+  return name.value && userName.value && email.value && password.value && 
+         !nameError.value && !userNameError.value && !emailError.value && !passwordError.value
 })
 
 // Methods
@@ -120,9 +140,16 @@ async function submit() {
   
   isLoading.value = true
   
-  try {
-    // final_draft sign-up flow (no API): direct to student onboarding
-    router.push('/student/preferences')
+  try {   
+   const auth = useAuthStore()
+  auth.setTempPayload({
+    name: name.value,
+    user_name: userName.value,
+    institute_email: instituteEmail.value,
+    email: email.value,
+    password: password.value
+  });
+    router.push('/auth/preferences')
   } catch (error) {
     console.error('Sign up error:', error)
   } finally {

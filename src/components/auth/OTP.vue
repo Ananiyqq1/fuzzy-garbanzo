@@ -4,36 +4,26 @@
       <button class="back-button" @click="goBack">
         <i class="fas fa-arrow-left"></i> Back
       </button>
-      
+
       <div class="otp-form">
         <div class="role-indicator" :class="role">
           {{ role === 'admin' ? 'Admin Account' : 'Student Account' }}
         </div>
         <h1>OTP Verification</h1>
         <p>Enter the 6-digit code sent to your email</p>
-        
+
         <div class="otp-inputs">
-          <input
-            v-for="(digit, index) in otpDigits"
-            :key="index"
-            class="otp-input"
-            type="text"
-            maxlength="1"
-            pattern="[0-9]"
-            inputmode="numeric"
-            v-model="otpDigits[index]"
-            @input="handleInput(index, $event)"
-            @keydown="handleKeydown(index, $event)"
-            :ref="el => { if (el) otpInputs[index] = el }"
-            :autofocus="index === 0"
-          />
+          <input v-for="(digit, index) in otpDigits" :key="index" class="otp-input" type="text" maxlength="1"
+            pattern="[0-9]" inputmode="numeric" v-model="otpDigits[index]" @input="handleInput(index, $event)"
+            @keydown="handleKeydown(index, $event)" :ref="el => { if (el) otpInputs[index] = el }"
+            :autofocus="index === 0" />
         </div>
-        
+
         <button @click="verifyOtp" :disabled="!isOtpComplete || isLoading">
           <span v-if="isLoading">Verifying...</span>
           <span v-else>Verify</span>
         </button>
-        
+
         <div class="resend-option">
           Didn't receive the code? <a @click="resendOtp">Resend</a>
         </div>
@@ -45,14 +35,17 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { verify_otp } from './api/VerifyOTP'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = useRouter()
 const route = useRoute()
-
+const otp_session_id = route.params.session_id
 const otpDigits = ref(['', '', '', '', '', ''])
 const otpInputs = ref([])
 const isLoading = ref(false)
-const role = ref(route.query.role || 'student')
+const role = ref(route.query.role || 'peer')
+const auth = useAuthStore()
 
 const isOtpComplete = computed(() => {
   return otpDigits.value.every(digit => digit !== '')
@@ -60,13 +53,13 @@ const isOtpComplete = computed(() => {
 
 const handleInput = (index, event) => {
   const value = event.target.value
-  
+
   // Only allow numbers
   if (!/^\d*$/.test(value)) {
     otpDigits.value[index] = ''
     return
   }
-  
+
   // Auto-tab to next input
   if (value.length === 1 && index < 5) {
     otpInputs.value[index + 1]?.focus()
@@ -84,14 +77,37 @@ const verifyOtp = async () => {
   if (!isOtpComplete.value || isLoading.value) return
   const otpCode = otpDigits.value.join('')
   isLoading.value = true
-  try {
-    // final_draft behavior: accept 6-digit OTP and route by role
+  try { 
     const isValid = /^\d{6}$/.test(otpCode)
     if (!isValid) throw new Error('invalid-otp')
-    if (role.value === 'admin') {
-      router.push('/admin/dashboard')
-    } else {
-      router.push('/student/dashboard')
+    const result = await verify_otp({
+      session_id: otp_session_id,
+      code: otpCode
+    })
+    //handle the result here
+    if (result.status === 200) {
+      await auth.fetchUser()
+      if (auth.hasRole("admin")) {
+        router.push('/admin')
+        return;
+      } else if (auth.hasRole("peer")) {
+        router.push('/')
+        return;
+      }
+      else {
+        router.push('/auth')
+        return;
+      }
+    }
+    else if (result.status === 400) {
+      alert('Invalid OTP code. Please try again.')
+      otpDigits.value = ['', '', '', '', '', '']
+      otpInputs.value[0]?.focus()
+      return;
+    }
+    else {
+      router.push('/auth')
+      return;
     }
   } catch (error) {
     console.error('OTP verification error:', error)
@@ -305,21 +321,21 @@ button:disabled {
     min-height: 100vh;
     border-radius: 0;
   }
-  
+
   .otp-form {
     padding: 30px 20px;
   }
-  
+
   .otp-inputs {
     gap: 6px;
   }
-  
+
   .otp-input {
     width: 35px;
     height: 35px;
     font-size: 18px;
   }
-  
+
   h1 {
     font-size: 1.5rem;
   }
