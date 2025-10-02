@@ -15,18 +15,34 @@ export interface CurrentUser {
   interests: string[];
   created_at: string;
 }
+export interface TempPayload {
+  name: string;
+  user_name: string;
+  institute_email?: string;
+  email: string;
+  password: string;
+  interests?: string[];
+}
 
 interface AuthState {
   user: CurrentUser | null;
   loading: boolean;
+   tempPayload: TempPayload | null;
 }
 
 export const useAuthStore = defineStore("auth", {
   state: (): AuthState => ({
     user: null,
     loading: true,
+    tempPayload: null,
   }),
   actions: {
+     setTempPayload(payload: TempPayload) { 
+      this.tempPayload = payload;
+    },
+    clearTempPayload() {
+      this.tempPayload = null;
+    },
     async fetchUser() {
       this.loading = true;
       try {
