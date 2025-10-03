@@ -10,6 +10,22 @@
             <p>Student Dashboard</p>
           </div>
         </div>
+
+        <div class="search-container">
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="search-input"
+            placeholder="Search courses, users, and more..."
+          />
+          <svg class="search-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+            />
+          </svg>
+        </div>
+
         <div class="header-actions">
           <button class="action-btn" @click="navigateToProfile">
             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
@@ -56,13 +72,20 @@
       ></div>
 
       <!-- Sidebar -->
-      <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
+      <aside
+        class="sidebar"
+        :class="{
+          'sidebar-open': sidebarOpen,
+          'sidebar-blur': !isTablet && hasScrolled,
+          'sidebar-hidden': isTablet && sidebarHidden
+        }"
+      >
         <nav>
           <ul class="nav-list">
             <li v-for="item in navItems" :key="item.path">
               <router-link
                 :to="item.path"
-                class="nav-link"
+                class="nav-item"
                 :class="{ active: $route.path === item.path }"
               >
                 <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
@@ -90,9 +113,13 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const searchQuery = ref('')
 const isMobile = ref(false)
+const isTablet = ref(false)
 const sidebarOpen = ref(false)
+const hasScrolled = ref(false)
+const sidebarHidden = ref(false)
 
 let resizeListener
+let scrollListener
 
 // Methods
 const navigateToProfile = () => {
@@ -103,19 +130,39 @@ const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
 }
 
-const checkMobile = () => {
-  isMobile.value = window.innerWidth <= 768
+const updateBreakpoints = () => {
+  const width = window.innerWidth
+  isMobile.value = width <= 768
+  isTablet.value = width > 768 && width <= 1024
+  if (!isTablet.value) {
+    sidebarHidden.value = false
+  }
+}
+
+const handleScroll = () => {
+  const scrollTop = window.scrollY
+  hasScrolled.value = scrollTop > 0
+  if (isTablet.value) {
+    sidebarHidden.value = scrollTop > 80
+  } else {
+    sidebarHidden.value = false
+  }
 }
 
 onMounted(() => {
-  checkMobile()
-  resizeListener = () => checkMobile()
+  updateBreakpoints()
+  resizeListener = () => updateBreakpoints()
+  scrollListener = () => handleScroll()
   window.addEventListener('resize', resizeListener)
+  window.addEventListener('scroll', scrollListener, { passive: true })
 })
 
 onUnmounted(() => {
   if (resizeListener) {
     window.removeEventListener('resize', resizeListener)
+  }
+  if (scrollListener) {
+    window.removeEventListener('scroll', scrollListener)
   }
 })
 
@@ -237,8 +284,9 @@ const navItems = [
 }
 
 .search-input:focus {
-  border: 2px solid #111827;
-  border-color: transparent;
+  outline: none;
+  border-color: #111827;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.1);
 }
 
 .search-icon {
@@ -305,16 +353,29 @@ const navItems = [
   position: sticky;
   top: 6rem;
   height: fit-content;
+  transition: filter 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+  opacity: 1;
+  z-index: 1;
+}
+
+.sidebar.sidebar-blur {
+  filter: blur(6px);
+  opacity: 0.85;
+}
+
+.sidebar.sidebar-hidden {
+  transform: translateY(-120%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .nav-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
-.nav-link {
+.nav-item {
   width: 100%;
   display: flex;
   align-items: center;
@@ -328,19 +389,20 @@ const navItems = [
   font-weight: 500;
   color: #4b5563;
   text-decoration: none;
+  white-space: nowrap;
 }
 
-.nav-link:hover {
+.nav-item:hover {
   background: #f3f4f6;
 }
 
-.nav-link.active {
+.nav-item.active {
   background: #111827;
   color: white;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-.nav-link svg {
+.nav-item svg {
   width: 1.25rem;
   height: 1.25rem;
 }
@@ -355,6 +417,7 @@ const navItems = [
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   min-height: 600px;
+  z-index: 2;
 }
 
 /* Standardized Button Styling - Auth Interface Consistency */
@@ -407,16 +470,49 @@ button.ghost:hover {
     width: 100%;
     max-width: none;
   }
+
+  .menu-toggle {
+    display: inline-flex;
+  }
 }
 
 @media (max-width: 768px) {
+  .header-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .logo-section {
+    order: 1;
+  }
+
+  .search-container {
+    order: 3;
+    width: 100%;
+    margin: 0;
+    max-width: none;
+  }
+
+  .header-actions {
+    order: 2;
+    width: 100%;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .header-actions .menu-toggle {
+    margin-left: auto;
+  }
+
   .main-container {
     padding: 1rem;
   }
 
   .sidebar {
     position: fixed;
-    top: 5.5rem;
+    top: 10rem;
     left: 0;
     width: 260px;
     height: calc(100vh - 5.5rem);
@@ -451,8 +547,36 @@ button.ghost:hover {
   }
 
   .menu-toggle {
-    display: inline-flex;
     order: 2;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .main-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .sidebar {
+    order: 1;
+    width: 100%;
+    max-width: none;
+    top: 6rem;
+  }
+
+  .main-content-wrapper {
+    order: 2;
+    z-index: 0;
+  }
+
+  .sidebar.sidebar-blur {
+    filter: blur(8px);
+    opacity: 0.75;
+  }
+
+  .sidebar.sidebar-hidden {
+    transform: translateY(-120%);
   }
 }
 </style>

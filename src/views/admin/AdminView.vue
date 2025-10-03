@@ -71,7 +71,14 @@
       ></div>
 
       <!-- Sidebar -->
-      <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
+      <aside
+        class="sidebar"
+        :class="{
+          'sidebar-open': sidebarOpen,
+          'sidebar-blur': !isTablet && hasScrolled,
+          'sidebar-hidden': isTablet && sidebarHidden
+        }"
+      >
         <nav>
           <ul class="nav-list">
             <li v-for="item in navItems" :key="item.path">
@@ -90,6 +97,7 @@
                   <i :class="item.icon" aria-hidden="true"></i>
                 </template>
                 {{ item.label }}
+
               </router-link>
             </li>
           </ul>
@@ -111,9 +119,13 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const searchQuery = ref('')
 const isMobile = ref(false)
+const isTablet = ref(false)
 const sidebarOpen = ref(false)
+const hasScrolled = ref(false)
+const sidebarHidden = ref(false)
 
 let resizeListener
+let scrollListener
 
 // Methods
 const navigateToProfile = () => {
@@ -124,19 +136,39 @@ const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
 }
 
-const checkMobile = () => {
-  isMobile.value = window.innerWidth <= 768
+const updateBreakpoints = () => {
+  const width = window.innerWidth
+  isMobile.value = width <= 768
+  isTablet.value = width > 768 && width <= 1024
+  if (!isTablet.value) {
+    sidebarHidden.value = false
+  }
+}
+
+const handleScroll = () => {
+  const scrollTop = window.scrollY
+  hasScrolled.value = scrollTop > 0
+  if (isTablet.value) {
+    sidebarHidden.value = scrollTop > 80
+  } else {
+    sidebarHidden.value = false
+  }
 }
 
 onMounted(() => {
-  checkMobile()
-  resizeListener = () => checkMobile()
+  updateBreakpoints()
+  resizeListener = () => updateBreakpoints()
+  scrollListener = () => handleScroll()
   window.addEventListener('resize', resizeListener)
+  window.addEventListener('scroll', scrollListener, { passive: true })
 })
 
 onUnmounted(() => {
   if (resizeListener) {
     window.removeEventListener('resize', resizeListener)
+  }
+  if (scrollListener) {
+    window.removeEventListener('scroll', scrollListener)
   }
 })
 
@@ -337,6 +369,19 @@ const navItems = [
   position: sticky;
   top: 6rem;
   height: fit-content;
+  transition: filter 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+  z-index: 1;
+}
+
+.sidebar.sidebar-blur {
+  filter: blur(6px);
+  opacity: 0.85;
+}
+
+.sidebar.sidebar-hidden {
+  transform: translateY(-120%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .nav-list {
@@ -386,6 +431,8 @@ const navItems = [
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   min-height: 600px;
+  position: relative;
+  z-index: 2;
 }
 
 /* Standardized Button Styling - Auth Interface Consistency */
@@ -454,24 +501,42 @@ button.ghost:hover {
 }
 
 @media (max-width: 768px) {
-  .header-container {
-    flex-direction: row;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-  }
-
-  .search-container {
-    margin: 0;
-    max-width: none;
-  }
-
   .main-container {
     padding: 1rem;
   }
 
+  .header-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .logo-section {
+    order: 1;
+  }
+
+  .search-container {
+    order: 3;
+    width: 100%;
+    margin: 0;
+    max-width: none;
+  }
+
+  .header-actions {
+    order: 2;
+    width: 100%;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .header-actions .menu-toggle {
+    margin-left: auto;
+  }
+
   .sidebar {
     position: fixed;
-    top: 5.5rem;
+    top: 10rem;
     left: 0;
     width: 260px;
     height: calc(100vh - 5.5rem);
@@ -507,6 +572,37 @@ button.ghost:hover {
 
   .menu-toggle {
     order: 2;
+  }
+}
+
+
+
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .main-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .sidebar {
+    order: 1;
+    width: 100%;
+    max-width: none;
+  }
+
+  .main-content-wrapper {
+    order: 2;
+    z-index: 0;
+  }
+
+  .sidebar.sidebar-blur {
+    filter: blur(8px);
+    opacity: 0.75;
+  }
+
+  .sidebar.sidebar-hidden {
+    transform: translateY(-120%);
   }
 }
 </style>

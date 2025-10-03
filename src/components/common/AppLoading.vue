@@ -101,6 +101,7 @@ onUnmounted(() => {
 
 <style scoped>
 
+
 .loading-overlay {
   position: fixed;
   inset: 0;
@@ -125,7 +126,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* justify-content: center; */
   gap: 1.75rem;
   padding: 2rem 3rem;
   border-radius: 1.5rem;

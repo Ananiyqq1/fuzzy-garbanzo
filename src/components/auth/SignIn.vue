@@ -220,20 +220,25 @@ input:focus, select:focus {
 
 .role-selector {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 0.75rem;
   width: 100%;
   margin: 15px 0;
 }
 
 .role-option {
-  flex: 1;
+  flex: 1 1 0;
   text-align: center;
-  padding: 10px;
+  padding: 12px 10px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  margin: 0 5px;
   cursor: pointer;
   transition: all 0.3s ease;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .role-option.selected {
@@ -251,12 +256,22 @@ input:focus, select:focus {
 }
 
 .role-icon {
-  font-size: 16px;
-  margin-bottom: 8px;
+  font-size: 18px;
+  margin-bottom: 6px;
 }
 
 .error-message.show {
   display: block;
+}
+
+@media (max-width: 480px) {
+  .role-selector {
+    flex-direction: column;
+  }
+
+  .role-option {
+    width: 100%;
+  }
 }
 
 </style>
