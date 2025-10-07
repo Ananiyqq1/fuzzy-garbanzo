@@ -1,56 +1,45 @@
 <template>
-  <AppModal :show="true" title="Upload Resource" size="lg" @close="$emit('close')">
+  <AppModal :show="true" title="Upload Document" size="lg" @close="$emit('close')">
     <form class="upload-form" @submit.prevent="handleSubmit">
       <div class="field">
-        <label class="label" for="resource-title">Resource Title</label>
+        <label class="label" for="resource-title">Title</label>
         <input
           id="resource-title"
           v-model="form.title"
           type="text"
-          placeholder="Enter resource title"
+          placeholder="Enter document title"
           required
         />
       </div>
 
       <div class="field-grid">
         <div class="field">
-          <label class="label" for="resource-course">Course</label>
-          <select id="resource-course" v-model="form.course" required>
-            <option value="" disabled>Select a course</option>
-            <option v-for="course in courseOptions" :key="course.value" :value="course.value">
-              {{ course.label }}
-            </option>
-          </select>
+          <label class="label" for="resource-uploader-id">Uploader Id</label>
+          <input
+          id="resource-uploader-id"
+          v-model="form.uploaderId"
+          type="text"
+          disabled
+          required
+        />
         </div>
 
         <div class="field">
-          <label class="label" for="resource-type">Resource Type</label>
-          <select id="resource-type" v-model="form.type" required>
-            <option value="" disabled>Select resource type</option>
-            <option v-for="type in typeOptions" :key="type.value" :value="type.value">
-              {{ type.label }}
-            </option>
-          </select>
+          <label class="label" for="resource-room-id">Room Id</label>
+          <input
+          id="resource-room-id" 
+            v-model="props.roomId"
+          type="text" 
+          required
+          disabled
+        />
         </div>
       </div>
 
       <div class="field">
         <label class="label" for="resource-file">File</label>
-        <label class="file-input">
-          <input id="resource-file" type="file" @change="handleFile" required />
-          <span>{{ form.fileName || 'Choose file...' }}</span>
-        </label>
-      </div>
-
-      <div class="field">
-        <label class="label" for="resource-description">Description</label>
-        <textarea
-          id="resource-description"
-          v-model="form.description"
-          placeholder="Describe this resource"
-          rows="4"
-        ></textarea>
-      </div>
+       <v-file-input label="File input" v-model="form.file"></v-file-input>
+      </div> 
 
       <div class="actions">
         <AppButton variant="secondary" type="button" @click="$emit('close')">Cancel</AppButton>
@@ -64,23 +53,30 @@
 import { reactive, watch } from 'vue'
 import AppButton from '../../common/AppButton.vue'
 import AppModal from '../../common/AppModal.vue'
+import {uploadDocument } from '../api/UploadDoc'
 
 const props = defineProps({
   initialValue: {
     type: Object,
     default: () => ({})
-  }
+  },
+  roomId: {
+    type: String,
+    required: true
+  },
+  // uploaderId: {
+  //   type: String,
+  //   required: true
+  // }
 })
 
 const emit = defineEmits(['close', 'submit'])
 
 const form = reactive({
   title: '',
-  course: '',
-  type: '',
-  description: '',
-  file: null,
-  fileName: ''
+  uploaderId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  roomId: props.roomId || '', 
+  file: null, 
 })
 
 const courseOptions = [
@@ -99,20 +95,7 @@ const typeOptions = [
   { value: 'other', label: 'Other' }
 ]
 
-watch(
-  () => props.initialValue,
-  value => {
-    Object.assign(form, {
-      title: value.title || '',
-      course: value.course || '',
-      type: value.type || '',
-      description: value.description || '',
-      file: null,
-      fileName: ''
-    })
-  },
-  { immediate: true, deep: true }
-)
+ 
 
 function handleFile(event) {
   const file = event.target.files?.[0]
@@ -120,8 +103,23 @@ function handleFile(event) {
   form.fileName = file ? file.name : ''
 }
 
-function handleSubmit() {
-  emit('submit', { ...form })
+async function handleSubmit() { 
+  if(form.file == null){
+    alert("Please select a file to upload.");
+    return;
+  }
+var res=await uploadDocument({
+  fileName:form.title,
+  uploaderId:form.uploaderId,
+  roomId:form.roomId,
+},form.file);
+ if (res.status === 200) {
+          alert("File uploaded successfully!");
+          emit('close');
+        } else {
+          alert("Upload failed.");
+        }
+  // emit('submit', { ...form })
 }
 </script>
 

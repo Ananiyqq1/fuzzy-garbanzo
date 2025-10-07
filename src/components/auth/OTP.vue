@@ -35,7 +35,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { verify_otp } from './api/VerifyOTP'
+import { verify_otp } from './api/auth/VerifyOTP'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = useRouter()
@@ -84,7 +84,7 @@ const verifyOtp = async () => {
       session_id: otp_session_id,
       code: otpCode
     })
-    //handle the result here
+     
     if (result.status === 200) {
       await auth.fetchUser()
       if (auth.hasRole("admin")) {

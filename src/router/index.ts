@@ -21,6 +21,7 @@ import UserManagement from '../components/admin/UserManagement.vue'
 import Analytics from '../components/admin/Analytics.vue'
 import Settings from '../components/admin/Settings.vue'
 import AdminProfile from '../components/admin/AdminProfile.vue'
+import Room from '@/components/student/Room.vue';
 
 const routes = [
   {
@@ -51,6 +52,7 @@ const routes = [
       { path: 'sessions', component: MySessions, name: "MySessions" },
       { path: 'resources', component: Resources, name: "Resources" },
       { path: 'study-rooms', component: StudyRooms, name: "StudyRooms" },
+      { path: 'room/:id', component: Room, name: "StudyRoom" },
       { path: 'evaluations', component: Evaluations, name: "Evaluations" },
       { path: 'profile', component: StudentProfile, name: "StudentProfile" },
     ],

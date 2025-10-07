@@ -84,6 +84,7 @@ import AppLoading from '../common/AppLoading.vue';
 import AppStatusBadge from '../common/AppStatusBadge.vue';
 import AppTabs from '../common/AppTabs.vue';
 import StudyRoomChatModal from './modals/StudyRoomChatModal.vue';
+import getRooms from '../auth/api/peer/GetRooms';
 
 // import StudyRoomChatModal from './modals/StudyRoomChatModal.vue';
 
@@ -197,7 +198,11 @@ const filteredRooms = computed(() => {
   return student.allRooms;
 });
 
-onMounted(() => { loadStudyGroups(); });
+onMounted(async() => { 
+  // loadStudyGroups(); 
+  var res=await getRooms();
+  console.log("rooms data", res.data);
+});
 
 function handlePrimaryAction(room) {
   if (room.primaryDisabled) {

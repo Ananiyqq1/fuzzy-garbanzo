@@ -12,7 +12,7 @@
           variant="elevated"
           :clickable="true"
           icon="fas fa-book-open"
-          @click="navigateTo('/student/resources')"
+          @click="navigateTo('/resources')"
         >
           <h3 class="card-title">My Courses</h3>
           <p class="card-subtitle">Continue your learning journey with your enrolled courses.</p>
@@ -23,7 +23,7 @@
           variant="elevated"
           :clickable="true"
           icon="fas fa-calendar-check"
-          @click="navigateTo('/student/sessions')"
+          @click="navigateTo('/sessions')"
         >
           <h3 class="card-title">Upcoming Sessions</h3>
           <p class="card-subtitle">View your scheduled study sessions and join when they start.</p>
@@ -34,7 +34,7 @@
           variant="elevated"
           :clickable="true"
           icon="fas fa-clipboard-list"
-          @click="navigateTo('/student/evaluations')"
+          @click="navigateTo('/evaluations')"
         >
           <h3 class="card-title">Assignments</h3>
           <p class="card-subtitle">Check your pending assignments and submission deadlines.</p>
@@ -45,7 +45,7 @@
           variant="elevated"
           :clickable="true"
           icon="fas fa-users"
-          @click="navigateTo('/student/study-rooms')"
+          @click="navigateTo('/study-rooms')"
         >
           <h3 class="card-title">Study Groups</h3>
           <p class="card-subtitle">Join or create study groups to collaborate with peers.</p>

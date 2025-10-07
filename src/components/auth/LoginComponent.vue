@@ -11,7 +11,7 @@
         <SignIn @switch-to-signup="switchToSignUp" />
       </div>
       
-      <!-- Overlay -->    s
+      <!-- Overlay -->  
       <div class="overlay-container">
         <div class="overlay">
           <div class="overlay-panel overlay-left">

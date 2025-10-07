@@ -60,7 +60,7 @@ import AppContentHeader from '../common/AppContentHeader.vue';
 import AppTabs from '../common/AppTabs.vue';
 import { useAuthStore } from '@/stores/useAuthStore';
 import SignUp from '../auth/SignUp.vue';
-import { signUp } from '../auth/api/SignUp';
+import { signUp } from '../auth/api/auth/SignUp';
 const auth = useAuthStore()
 const router = useRouter();
 const userInfo = auth.tempPayload;
@@ -140,7 +140,7 @@ function toggleSelection(courseTitle) {
 
 function skip() {
   alert("You haven't selected any preferences. You can come back later to complete your selection.");
-  router.push('/student/dashboard');
+  router.push('/');
 }
 
 async function continueOtp() {

@@ -45,7 +45,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import login from './api/Login'
+import login from './api/auth/Login'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const emit = defineEmits(['switch-to-signup'])
@@ -92,7 +92,7 @@ async function submit() {
 
   isLoading.value = true
   try {
-    var result = await login({
+    var result = await login({  
       institute_email: email.value,
       password: password.value,
     })
