@@ -11,7 +11,28 @@
       <!-- Profile Container -->
       <div class="profile-container">
         <div class="profile-header">
-          <img :src="adminData.avatar" alt="Profile Photo" class="profile-photo">
+          <div class="avatar-wrapper">
+            <img
+              :src="isEditing ? editData.avatar || adminData.avatar : adminData.avatar"
+              alt="Profile Photo"
+              class="profile-photo"
+            >
+            <button
+              v-if="isEditing"
+              class="change-photo-btn"
+              type="button"
+              @click="triggerAvatarUpload"
+            >
+              Change Photo
+            </button>
+            <input
+              ref="fileInput"
+              class="avatar-input"
+              type="file"
+              accept="image/*"
+              @change="handleAvatarSelected"
+            >
+          </div>
           <div class="profile-info">
             <h2>{{ adminData.name }}</h2>
             <p>{{ adminData.username }}</p>
@@ -149,6 +170,7 @@ const router = useRouter()
 // Reactive data
 const isEditing = ref(false)
 const newInterest = ref('')
+const fileInput = ref(null)
 
 const adminData = reactive({
   name: 'Dr. Sarah Johnson',
@@ -169,6 +191,7 @@ const editData = reactive({
   personalEmail: '',
   overallScore: 0,
   bio: '',
+  avatar: '',
   interests: []
 })
 
@@ -190,6 +213,7 @@ const toggleEdit = () => {
     personalEmail: adminData.personalEmail,
     overallScore: adminData.overallScore,
     bio: adminData.bio,
+    avatar: adminData.avatar,
     interests: [...adminData.interests]
   })
 }
@@ -197,6 +221,10 @@ const toggleEdit = () => {
 const cancelEdit = () => {
   isEditing.value = false
   newInterest.value = ''
+  editData.avatar = adminData.avatar
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
 }
 
 const saveProfile = () => {
@@ -204,6 +232,9 @@ const saveProfile = () => {
   Object.assign(adminData, editData)
   isEditing.value = false
   newInterest.value = ''
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
   // In a real app, you would send this to the backend
   console.log('Admin profile updated:', adminData)
 }
@@ -224,6 +255,25 @@ const addInterest = () => {
 
 const removeInterest = (index) => {
   editData.interests.splice(index, 1)
+}
+
+const triggerAvatarUpload = () => {
+  if (fileInput.value) {
+    fileInput.value.click()
+  }
+}
+
+const handleAvatarSelected = (event) => {
+  const [file] = event.target.files || []
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    if (typeof e.target?.result === 'string') {
+      editData.avatar = e.target.result
+    }
+  }
+  reader.readAsDataURL(file)
 }
 
 const manageUsers = () => {
@@ -298,6 +348,8 @@ onMounted(() => {
 .profile-header {
   display: flex;
   align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
   margin-bottom: 30px;
   padding-bottom: 20px;
   border-bottom: 1px solid rgba(229, 231, 235, 0.7);
@@ -308,8 +360,52 @@ onMounted(() => {
   height: 120px;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 30px;
   border: 3px solid rgba(17, 24, 39, 0.1);
+}
+
+.avatar-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 30px;
+}
+
+.change-photo-btn {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.35rem 0.9rem;
+  font-size: 0.75rem;
+  border-radius: 9999px;
+  text-transform: none;
+  letter-spacing: normal;
+  border: none;
+  background: linear-gradient(135deg, #111827 0%, #374151 100%);
+  color: #ffffff;
+  box-shadow: 0 8px 16px -12px rgba(15, 23, 42, 0.9);
+}
+
+.change-photo-btn:hover {
+  transform: translate(-50%, -2px);
+}
+
+.change-photo-btn:active,
+.change-photo-btn:focus {
+  transform: translate(-50%, -2px);
+}
+
+.avatar-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .profile-info h2 {
@@ -335,7 +431,7 @@ onMounted(() => {
 .profile-details {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  gap: 1.5rem;
   margin-bottom: 30px;
 }
 
@@ -482,7 +578,7 @@ onMounted(() => {
 .action-buttons {
   display: flex;
   justify-content: flex-end;
-  gap: 15px;
+  gap: 1rem;
   margin-top: 20px;
 }
 
@@ -535,44 +631,46 @@ button.danger:hover {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .profile-header {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .profile-photo {
-    margin-right: 0;
-    margin-bottom: 20px;
-  }
-  
-  .profile-details {
-    grid-template-columns: 1fr;
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-  }
-  
-  button {
-    width: 100%;
+  .admin-profile {
+    padding: 1rem;
   }
 
-  .profile-container {
-    padding: 25px;
+  .avatar-wrapper {
+    margin-right: 0;
+  }
+
+  .profile-info h2 {
+    font-size: 1.5rem;
+  }
+
+  .change-photo-btn {
+    bottom: -12px;
+  }
+
+  .profile-details {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .detail-card {
+    padding: 1rem;
   }
 
   .admin-section {
-    padding: 20px;
+    padding: 1rem;
   }
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
-}
 
-@media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
+  .stat-card {
+    padding: 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
   }
 }
 </style>

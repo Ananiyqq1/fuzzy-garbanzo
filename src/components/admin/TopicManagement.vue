@@ -5,28 +5,37 @@
       subtitle="Organize and manage learning topics and subtopics"
     >
       <template #actions>
-        <AppButton icon="fas fa-plus" @click="openTopicModal">Add New Topic</AppButton>
+        <!-- <AppButton icon="fas fa-plus" @click="openTopicModal">Add New Topic</AppButton> -->
       </template>
     </AppContentHeader>
 
     <AppFilterBar>
-      <AppSelect v-model="filters.course" label="Course">
-        <option value="all">All Courses</option>
-        <option v-for="course in courseOptions" :key="course" :value="course">{{ course }}</option>
-      </AppSelect>
-      <AppInput
-        v-model="filters.search"
-        placeholder="Search topics..."
-        left-icon="fas fa-search"
-      />
+      <div class="filter-row">
+        <AppSelect v-model="filters.course" label="Course">
+          <option value="all">All Courses</option>
+          <option v-for="course in courseOptions" :key="course" :value="course">{{ course }}</option>
+        </AppSelect>
+        <AppSelect v-model="filters.status" label="Status">
+          <option value="all">All Status</option>
+          <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
+        </AppSelect>
+        <AppInput
+          v-model="filters.search"
+          placeholder="Search topics..."
+          left-icon="fas fa-search"
+          label="Search"
+          class="filter-search"
+        />
+      </div>
       <template #actions>
-        <AppButton
+        <!-- <AppButton
           variant="secondary"
           icon="fas fa-download"
           @click="exportTopics"
+{{ ... }}
         >
           Export
-        </AppButton>
+        </AppButton> -->
       </template>
     </AppFilterBar>
 
@@ -41,18 +50,6 @@
           <option value="">Select course</option>
           <option v-for="course in courseOptions" :key="`parent-${course}`" :value="course">{{ course }}</option>
         </AppSelect>
-        <AppSelect v-model="newTopic.difficulty" label="Difficulty Level">
-          <option value="">Select difficulty</option>
-          <option value="Beginner">Beginner</option>
-          <option value="Intermediate">Intermediate</option>
-          <option value="Advanced">Advanced</option>
-        </AppSelect>
-        <AppInput
-          v-model="newTopic.duration"
-          type="number"
-          label="Estimated Duration (hours)"
-          placeholder="e.g., 5"
-        />
         <AppTextarea
           v-model="newTopic.description"
           label="Topic Description"
@@ -108,17 +105,12 @@ import AppTextarea from '../common/AppTextarea.vue';
 const courseOptions = [
   'Data Structures and Algorithms',
   'Database Systems',
-  'Calculus I',
-  'Business Management'
 ];
 
 const state = reactive({
   topics: [
     { title: 'Linked Lists', course: 'Data Structures and Algorithms', difficulty: 'Intermediate', duration: '4 hours', resources: 12, status: 'Active', statusLabel: 'Active' },
     { title: 'SQL Queries', course: 'Database Systems', difficulty: 'Beginner', duration: '3 hours', resources: 8, status: 'Active', statusLabel: 'Active' },
-    { title: 'Differential Calculus', course: 'Calculus I', difficulty: 'Advanced', duration: '6 hours', resources: 10, status: 'Draft', statusLabel: 'Draft' },
-    { title: 'Marketing Fundamentals', course: 'Business Management', difficulty: 'Beginner', duration: '4 hours', resources: 6, status: 'Active', statusLabel: 'Active' },
-    { title: 'Balanced Binary Trees', course: 'Data Structures and Algorithms', difficulty: 'Advanced', duration: '5 hours', resources: 9, status: 'Inactive', statusLabel: 'Inactive' }
   ],
   filters: {
     course: 'all',
@@ -139,8 +131,6 @@ const newTopic = state.newTopic;
 const columns = [
   { key: 'title', label: 'Topic Title', minWidth: '220px' },
   { key: 'course', label: 'Course', minWidth: '200px' },
-  { key: 'difficulty', label: 'Difficulty', width: '140px' },
-  { key: 'duration', label: 'Duration', width: '140px', align: 'center' },
   { key: 'resources', label: 'Resources', width: '140px', align: 'center' },
   { key: 'status', label: 'Status', width: '140px', align: 'center' },
   { key: 'actions', label: 'Actions', width: '140px', align: 'center' },
@@ -194,6 +184,20 @@ function exportTopics() {
 <style scoped>
 .topic-management {
   padding: 2rem;
+}
+
+.filter-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-row > * {
+  flex: 1 1 220px;
+}
+
+.filter-search {
+  min-width: 260px;
 }
 
 .form-grid {

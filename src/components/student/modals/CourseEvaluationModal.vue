@@ -22,7 +22,7 @@
         </div>
       </div>
 
-      <div class="rating-section">
+      <!-- <div class="rating-section">
         <label class="label">Course Content Rating</label>
         <div class="rating-stars">
           <button
@@ -36,9 +36,9 @@
             ★
           </button>
         </div>
-      </div>
+      </div> -->
 
-      <div class="rating-section">
+      <!-- <div class="rating-section">
         <label class="label">Instructor Rating</label>
         <div class="rating-stars">
           <button
@@ -52,7 +52,7 @@
             ★
           </button>
         </div>
-      </div>
+      </div> -->
 
       <div class="field">
         <label class="label" for="evaluation-comments">Comments</label>
@@ -63,7 +63,7 @@
           rows="4"
         />
       </div>
-
+<!-- 
       <div class="field">
         <label class="label">Would you recommend this course to other students?</label>
         <div class="radio-group">
@@ -76,7 +76,7 @@
             No
           </label>
         </div>
-      </div>
+      </div> -->
 
       <div class="actions">
         <AppButton variant="secondary" type="button" @click="$emit('close')">Cancel</AppButton>
@@ -104,10 +104,10 @@ const starScale = [1, 2, 3, 4, 5]
 
 const form = reactive({
   overall: 0,
-  content: 0,
-  instructor: 0,
+  // content: 0,
+  // instructor: 0,
   comments: '',
-  recommend: 'yes',
+  // recommend: 'yes',
 })
 
 const courseTitle = computed(() => props.course?.title ?? 'Course')
@@ -117,10 +117,10 @@ watch(
   value => {
     Object.assign(form, {
       overall: value?.ratings?.overall ?? 0,
-      content: value?.ratings?.content ?? 0,
-      instructor: value?.ratings?.instructor ?? 0,
+      // content: value?.ratings?.content ?? 0,
+      // instructor: value?.ratings?.instructor ?? 0,
       comments: value?.feedback?.comments ?? '',
-      recommend: value?.feedback?.recommend ?? 'yes',
+      // recommend: value?.feedback?.recommend ?? 'yes',
     })
   },
   { immediate: true, deep: true }

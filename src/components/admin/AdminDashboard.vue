@@ -167,6 +167,8 @@ h3 {
   white-space: nowrap;
 }
 .admin-dashboard {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
   padding: 2rem;
 }
 
@@ -293,7 +295,26 @@ h3 {
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .admin-dashboard {
+    padding: 1.5rem;
+  }
+
+  .admin-cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .admin-card {
+    padding: 1.25rem;
+  }
+}
+
 @media (max-width: 768px) {
+  .admin-dashboard {
+    padding: 1rem;
+  }
+
   .content-header {
     flex-direction: column;
     align-items: flex-start;
@@ -306,10 +327,59 @@ h3 {
 
   .admin-cards-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
-  .main-content {
-    padding: 1.5rem;
+  .admin-card {
+    padding: 1rem;
+  }
+
+  .admin-card h3 {
+    font-size: 1.1rem;
+  }
+
+  .admin-card p {
+    font-size: 0.9rem;
+  }
+
+  .admin-card-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .admin-card-actions .admin-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-dashboard {
+    padding: 0.5rem;
+  }
+
+  .content-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .admin-card {
+    padding: 0.75rem;
+  }
+
+  .admin-card h3 {
+    font-size: 1rem;
+  }
+
+  .admin-card p {
+    font-size: 0.85rem;
+  }
+
+  .admin-card-icon {
+    padding: 0.5rem;
+  }
+
+  .admin-card-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 }
 </style>

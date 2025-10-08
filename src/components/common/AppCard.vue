@@ -41,42 +41,36 @@
   </div>
 </template>
 
-<script setup>
-const props = defineProps({
-  title: {
-    type: String,
-    default: ''
-  },
-  icon: {
-    type: String,
-    default: ''
-  },
-  variant: {
-    type: String,
-    default: 'default',
-    validator: (value) => ['default', 'elevated', 'outlined', 'flat'].includes(value)
-  },
-  clickable: {
-    type: Boolean,
-    default: false
-  },
-  isLoading: {
-    type: Boolean,
-    default: false
-  },
-  loadingText: {
-    type: String,
-    default: 'Loading...'
-  }
-})
+<script setup lang="ts">
+type CardVariant = 'default' | 'elevated' | 'outlined' | 'flat';
 
-const emit = defineEmits(['click'])
-
-const handleClick = (event) => {
-  if (props.clickable && !props.isLoading) {
-    emit('click', event)
-  }
+interface AppCardProps {
+  title?: string;
+  icon?: string;
+  variant?: CardVariant;
+  clickable?: boolean;
+  isLoading?: boolean;
+  loadingText?: string;
 }
+
+const props = withDefaults(defineProps<AppCardProps>(), {
+  title: '',
+  icon: '',
+  variant: 'default',
+  clickable: false,
+  isLoading: false,
+  loadingText: 'Loading...',
+});
+
+const emit = defineEmits<{
+  (event: 'click', value: MouseEvent): void;
+}>();
+
+const handleClick = (event: MouseEvent): void => {
+  if (props.clickable && !props.isLoading) {
+    emit('click', event);
+  }
+};
 </script>
 
 <style scoped>

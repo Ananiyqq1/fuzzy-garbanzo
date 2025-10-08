@@ -1,11 +1,10 @@
 <template>
   <div class="forgot-password-page">
     <div class="container">
-      <button class="back-button" @click="goBack">
-        <i class="fas fa-arrow-left"></i> Back
-      </button>
-      
       <div class="form-container">
+        <button class="back-button" @click="goBack" type="button" aria-label="Back">
+          <i class="fas fa-arrow-left"></i>
+        </button>
         <h1>Forgot Password</h1>
         <p>{{ stepDescriptions[currentStep - 1] }}</p>
         
@@ -62,7 +61,7 @@
               v-model="otpDigits[index]"
               @input="handleOtpInput(index, $event)"
               @keydown="handleOtpKeydown(index, $event)"
-              :ref="el => { if (el) otpInputs[index] = el }"
+              :ref="(el: any) => { otpInputs[index] = el; }"
               :autofocus="index === 0"
             />
           </div>
@@ -115,140 +114,151 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
-const router = useRouter()
+const router = useRouter();
 
-const currentStep = ref(1)
-const email = ref('')
-const otpDigits = ref(['', '', '', '', '', ''])
-const otpInputs = ref([])
-const newPassword = ref('')
-const confirmPassword = ref('')
-const isLoading = ref(false)
+const OTP_LENGTH = 6;
 
-const stepLabels = ['Verify Email', 'Verify OTP', 'New Password']
+const currentStep = ref<number>(1);
+const email = ref<string>('');
+const otpDigits = ref<string[]>(Array(OTP_LENGTH).fill(''));
+const otpInputs = ref<(HTMLInputElement | null)[]>([]);
+const newPassword = ref<string>('');
+const confirmPassword = ref<string>('');
+const isLoading = ref<boolean>(false);
+
+const stepLabels = ['Verify Email', 'Verify OTP', 'New Password'] as const;
 const stepDescriptions = [
   'Enter your institute email to receive a reset code',
   'Enter the 6-digit code sent to your email',
-  'Create a new secure password for your account'
-]
+  'Create a new secure password for your account',
+] as const;
 
-// Validation
 const emailError = computed(() => {
-  if (!email.value) return ''
-  if (!email.value.includes('@')) return 'Please enter a valid email address.'
-  return ''
-})
+  if (!email.value) return '';
+  if (!email.value.includes('@')) return 'Please enter a valid email address.';
+  return '';
+});
 
 const passwordError = computed(() => {
-  if (!newPassword.value) return ''
-  if (newPassword.value.length < 8) return 'Password must be at least 8 characters long.'
-  return ''
-})
+  if (!newPassword.value) return '';
+  if (newPassword.value.length < 8) return 'Password must be at least 8 characters long.';
+  return '';
+});
 
 const confirmError = computed(() => {
-  if (!confirmPassword.value) return ''
-  if (newPassword.value !== confirmPassword.value) return 'Passwords do not match.'
-  return ''
-})
+  if (!confirmPassword.value) return '';
+  if (newPassword.value !== confirmPassword.value) return 'Passwords do not match.';
+  return '';
+});
 
-const isOtpComplete = computed(() => {
-  return otpDigits.value.every(digit => digit !== '')
-})
+const isOtpComplete = computed(() => otpDigits.value.every((digit) => digit !== ''));
 
-const isPasswordValid = computed(() => {
-  return newPassword.value && confirmPassword.value && 
-         !passwordError.value && !confirmError.value
-})
+const isPasswordValid = computed(() =>
+  Boolean(
+    newPassword.value &&
+      confirmPassword.value &&
+      !passwordError.value &&
+      !confirmError.value,
+  ),
+);
 
-// Methods
-const handleOtpInput = (index, event) => {
-  const value = event.target.value
-  
+const setOtpInput = (index: number) => (el: HTMLInputElement | null) => {
+  otpInputs.value[index] = el;
+};
+
+const handleOtpInput = (index: number, event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const value = target.value;
+
   if (!/^\d*$/.test(value)) {
-    otpDigits.value[index] = ''
-    return
+    otpDigits.value[index] = '';
+    return;
   }
-  
-  if (value.length === 1 && index < 5) {
-    otpInputs.value[index + 1]?.focus()
-  }
-}
 
-const handleOtpKeydown = (index, event) => {
+  otpDigits.value[index] = value;
+
+  if (value.length === 1 && index < OTP_LENGTH - 1) {
+    otpInputs.value[index + 1]?.focus();
+  }
+};
+
+const handleOtpKeydown = (index: number, event: KeyboardEvent) => {
   if (event.key === 'Backspace' && otpDigits.value[index] === '' && index > 0) {
-    otpInputs.value[index - 1]?.focus()
+    otpInputs.value[index - 1]?.focus();
   }
-}
+};
 
-const sendResetCode = async () => {
-  if (!email.value || emailError.value || isLoading.value) return
-  isLoading.value = true
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const sendResetCode = async (): Promise<void> => {
+  if (!email.value || emailError.value || isLoading.value) return;
+  isLoading.value = true;
   try {
-    // final_draft behavior: proceed to OTP step
-    await new Promise(r => setTimeout(r, 600))
-    currentStep.value = 2
-    setTimeout(() => { otpInputs.value[0]?.focus() }, 100)
+    await delay(600);
+    currentStep.value = 2;
+    setTimeout(() => {
+      otpInputs.value[0]?.focus();
+    }, 100);
   } catch (error) {
-    console.error('Send reset code error:', error)
-    alert('Failed to send reset code. Please try again.')
+    console.error('Send reset code error:', error);
+    alert('Failed to send reset code. Please try again.');
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
-const verifyCode = async () => {
-  if (!isOtpComplete.value || isLoading.value) return
-  const otpCode = otpDigits.value.join('')
-  isLoading.value = true
+const verifyCode = async (): Promise<void> => {
+  if (!isOtpComplete.value || isLoading.value) return;
+  const otpCode = otpDigits.value.join('');
+  isLoading.value = true;
   try {
-    const isValid = /^\d{6}$/.test(otpCode)
-    if (!isValid) throw new Error('invalid-otp')
-    currentStep.value = 3
+    const isValid = /^\d{6}$/.test(otpCode);
+    if (!isValid) throw new Error('invalid-otp');
+    currentStep.value = 3;
   } catch (error) {
-    console.error('OTP verification error:', error)
-    alert('Invalid OTP code. Please try again.')
-    otpDigits.value = ['', '', '', '', '', '']
-    otpInputs.value[0]?.focus()
+    console.error('OTP verification error:', error);
+    alert('Invalid OTP code. Please try again.');
+    otpDigits.value = Array(OTP_LENGTH).fill('');
+    otpInputs.value[0]?.focus();
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
-const resendCode = async () => {
-  alert('New reset code has been sent to your email')
-}
+const resendCode = async (): Promise<void> => {
+  alert('New reset code has been sent to your email');
+};
 
-const updatePassword = async () => {
-  if (!isPasswordValid.value || isLoading.value) return
-  isLoading.value = true
+const updatePassword = async (): Promise<void> => {
+  if (!isPasswordValid.value || isLoading.value) return;
+  isLoading.value = true;
   try {
-    await new Promise(r => setTimeout(r, 600))
-    alert('Your password has been successfully reset!')
-    router.push('/auth')
+    await delay(600);
+    alert('Your password has been successfully reset!');
+    router.push('/auth');
   } catch (error) {
-    console.error('Update password error:', error)
-    alert('Failed to update password. Please try again.')
+    console.error('Update password error:', error);
+    alert('Failed to update password. Please try again.');
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
-const goBack = () => {
+const goBack = (): void => {
   if (currentStep.value > 1) {
-    currentStep.value--
+    currentStep.value -= 1;
   } else {
-    router.back()
+    router.push('/auth');
   }
-}
+};
 </script>
 
 <style scoped>
 .forgot-password-page {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Montserrat', sans-serif;
   background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
   display: flex;
   justify-content: center;
@@ -282,10 +292,11 @@ const goBack = () => {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  padding: 40px;
+  padding: 48px 40px 40px;
   width: 100%;
   text-align: center;
   border-radius: 10px;
+  position: relative;
 }
 
 h1 {
@@ -382,23 +393,18 @@ button:disabled {
 
 .back-button {
   position: absolute;
-  top: 20px;
-  left: 20px;
-  background: none;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
   border: none;
-  color: #6b7280;
-  font-size: 16px;
-  cursor: pointer;
-  transition: color 0.3s ease;
-  padding: 8px;
-  min-width: auto;
-}
-
-.back-button:hover {
   color: #111827;
-  background: none;
-  transform: none;
-  box-shadow: none;
+  font-size: 1.15rem;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .steps-container {
@@ -501,49 +507,11 @@ button:disabled {
   text-decoration: underline;
 }
 
-/* Mobile responsive */
-@media (max-width: 480px) {
-  .container {
-    width: 100%;
-    min-height: 100vh;
-    border-radius: 0;
-  }
-  
-  .form-container {
-    padding: 30px 20px;
-  }
-  
-  .steps-container {
-    gap: 5px;
-  }
-  
-  .step-number {
-    width: 35px;
-    height: 35px;
-    font-size: 14px;
-  }
-  
-  .step-label {
-    font-size: 10px;
-  }
-  
-  .otp-inputs {
-    gap: 6px;
-  }
-  
-  .otp-input {
-    width: 35px;
-    height: 35px;
-    font-size: 18px;
-  }
-  
-  h1 {
-    font-size: 1.5rem;
-  }
-  
-  button {
-    padding: 10px 35px;
-    font-size: 11px;
+/* Responsive Design for Back Button */
+@media (min-width: 768px) {
+  .back-button {
+    top: 16px;
+    right: 16px;
   }
 }
 </style>

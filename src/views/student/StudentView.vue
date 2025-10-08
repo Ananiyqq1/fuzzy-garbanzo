@@ -1,91 +1,117 @@
 <template>
   <div class="student-layout">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-container">
-        <div class="logo-section">
-          <div class="logo">H</div>
-          <div class="brand-info">
-            <h1>HiLCoE Peer</h1>
-            <p>Student Dashboard</p>
-          </div>
-        </div>
+    <AppHeader
+      title="HiLCoE Peer"
+      subtitle="Student Dashboard"
+      :show-search="true"
+      :show-notifications="true"
+      :show-theme-toggle="false"
+      :show-profile="true"
+      :user-name="studentName"
+      :user-avatar="studentAvatar"
+      :show-mobile-menu="isMobile"
+      :notification-count="notificationCount"
+      :search-placeholder="'Search courses, users, and more...'"
+      @search="searchQuery = $event"
+      @notifications="showNotificationToast"
+      @toggle-sidebar="toggleSidebar"
+      @toggle-profile="navigateToProfile"
+    />
 
-        <div class="search-container">
-          <input
-            type="text"
-            class="search-input"
-            placeholder="Search for courses, topics and more"
-            v-model="searchQuery"
-          />
-          <svg class="search-icon" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fill-rule="evenodd"
-              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-              clip-rule="evenodd"
-            />
-          </svg>
-        </div>
+    <StudentNotificationToast
+      v-model="isToastVisible"
+      :message="toastMessage"
+      :position="toastPosition"
+    />
 
-        <div class="header-actions">
-          <button class="action-btn">
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"
-              />
-            </svg>
-          </button>
-          <button class="action-btn" @click="navigateToProfile">
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fill-rule="evenodd"
-                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </header>
+    <div class="main-container" :class="containerLayoutClasses">
+      <AppSidebar
+        :menu-items="navMenuItems"
+        :is-open="sidebarOpen"
+        :show-close-button="isMobile"
+        :show-overlay="isMobile"
+        :show-footer="true"
+        :user-name="studentName"
+        :user-role="studentRole"
+        :user-avatar="studentAvatar"
+        @close="sidebarOpen = false"
+      />
 
-    <!-- Main Container -->
-    <div class="main-container">
-      <!-- Sidebar -->
-      <aside class="sidebar">
-        <nav>
-          <ul class="nav-list">
-            <li v-for="item in navItems" :key="item.path">
-              <router-link :to="item.path" class="nav-link" :class="{ active: $route.path === item.path }">
-                <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
-                  <path :d="item.iconPath" />
-                </svg>
-                {{ item.label }}
-              </router-link>
-            </li>
-          </ul>
-        </nav>
-      </aside>
-
-      <!-- Main Content -->
-      <div class="main-content-wrapper">
+      <AppCard class="main-content-wrapper" variant="elevated">
         <router-view />
-      </div>
+      </AppCard>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import StudentNotificationToast from '../../components/student/modals/StudentNotificationToast.vue'
+import AppHeader from '../../components/common/AppHeader.vue'
+import AppSidebar from '../../components/common/AppSidebar.vue'
+import AppCard from '../../components/common/AppCard.vue'
 
 const router = useRouter()
 const searchQuery = ref('')
+const isMobile = ref(false)
+const isTablet = ref(false)
+const sidebarOpen = ref(false)
+const isToastVisible = ref(false)
+const toastMessage = ref('')
+const studentName = ref('John Doe')
+const studentRole = ref('Student')
+const studentAvatar = ref('https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80')
+const notificationCount = ref(0)
 
-// Methods
+let resizeListener
+const toastPosition = computed(() => (isMobile.value ? 'bottom-center' : 'top-right'))
+
 const navigateToProfile = () => {
+  router.push('/profile')
   router.push('/profile')
 }
 
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value
+}
+
+const showNotificationToast = () => {
+  toastMessage.value = "You're all caught up. No new notifications right now."
+  isToastVisible.value = true
+}
+
+const updateBreakpoints = () => {
+  const width = window.innerWidth
+  isMobile.value = width <= 768
+  isTablet.value = width > 768 && width <= 1024
+  sidebarOpen.value = !isMobile.value
+}
+
+onMounted(() => {
+  updateBreakpoints()
+  resizeListener = () => updateBreakpoints()
+  window.addEventListener('resize', resizeListener)
+})
+
+onUnmounted(() => {
+  if (resizeListener) {
+    window.removeEventListener('resize', resizeListener)
+  }
+})
+
+const navMenuItems = computed(() => [
+  { name: 'Dashboard', path: '/dashboard', icon: 'fas fa-home' },
+  { name: 'My Sessions', path: '/sessions', icon: 'fas fa-calendar-check' },
+  { name: 'Resources', path: '/resources', icon: 'fas fa-book' },
+  { name: 'Study Rooms', path: '/study-rooms', icon: 'fas fa-users' },
+  { name: 'Evaluation', path: '/evaluations', icon: 'fas fa-chart-line' }
+])
+
+const containerLayoutClasses = computed(() => ({
+  'layout-mobile': isMobile.value,
+  'layout-tablet': isTablet.value
+}))
 const navItems = [
   {
     label: 'Dashboard',
@@ -129,8 +155,7 @@ const navItems = [
   color: #111827;
 }
 
-/* Header Styles */
-.header {
+:deep(.header) {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(229, 231, 235, 0.5);
@@ -139,7 +164,7 @@ const navItems = [
   z-index: 50;
 }
 
-.header-container {
+:deep(.header-container) {
   max-width: 1280px;
   margin: 0 auto;
   padding: 1rem 1.5rem;
@@ -148,13 +173,13 @@ const navItems = [
   justify-content: space-between;
 }
 
-.logo-section {
+:deep(.logo-section) {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.logo {
+:deep(.logo-section .logo) {
   width: 2.5rem;
   height: 2.5rem;
   background: linear-gradient(135deg, #111827 0%, #374151 100%);
@@ -162,12 +187,12 @@ const navItems = [
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #ffffff;
   font-weight: bold;
   font-size: 1.125rem;
 }
 
-.brand-info h1 {
+:deep(.brand-info h1) {
   font-size: 1.5rem;
   font-weight: bold;
   background: linear-gradient(135deg, #111827 0%, #6b7280 100%);
@@ -177,22 +202,21 @@ const navItems = [
   margin: 0;
 }
 
-.brand-info p {
+:deep(.brand-info p) {
   font-size: 0.875rem;
   color: #6b7280;
   font-weight: 500;
   margin: 0;
 }
 
-/* Search Bar */
-.search-container {
+:deep(.search-container) {
   flex: 1;
   max-width: 28rem;
   margin: 0 2rem;
   position: relative;
 }
 
-.search-input {
+:deep(.search-input) {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem;
   background: #f9fafb;
@@ -202,12 +226,12 @@ const navItems = [
   transition: all 0.2s ease;
 }
 
-.search-input:focus {
-  border: 2px solid #111827;
-  border-color: transparent;
+:deep(.search-input:focus) {
+  border-color: #111827;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.1);
 }
 
-.search-icon {
+:deep(.search-icon) {
   position: absolute;
   left: 0.75rem;
   top: 50%;
@@ -217,14 +241,13 @@ const navItems = [
   height: 1.25rem;
 }
 
-/* Header Actions */
-.header-actions {
+:deep(.header-actions) {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.action-btn {
+:deep(.header-actions .action-btn) {
   padding: 0.75rem;
   background: #f3f4f6;
   border: none;
@@ -233,17 +256,10 @@ const navItems = [
   transition: background-color 0.2s ease;
 }
 
-.action-btn:hover {
+:deep(.header-actions .action-btn:hover) {
   background: #e5e7eb;
 }
 
-.action-btn svg {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: #4b5563;
-}
-
-/* Main Layout */
 .main-container {
   max-width: 1600px;
   margin-left: auto;
@@ -257,57 +273,66 @@ const navItems = [
   z-index: 1;
 }
 
-/* Sidebar */
-.sidebar {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(20px);
-  border-radius: 1.5rem;
-  border: 1px solid rgba(229, 231, 235, 0.5);
-  padding: 2rem 1.5rem;
-  position: sticky;
-  top: 6rem;
-  height: fit-content;
+.main-container.layout-tablet {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 1.75rem;
 }
 
-.nav-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.nav-link {
+.main-container.layout-tablet :deep(.sidebar) {
+  position: static;
   width: 100%;
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  flex-direction: column;
+  overflow-x: auto;
   border-radius: 1rem;
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-  color: #4b5563;
-  text-decoration: none;
+  padding: 1.25rem 1.5rem;
 }
 
-.nav-link:hover {
-  background: #f3f4f6;
+.main-container.layout-tablet :deep(.sidebar-nav) {
+  width: 100%;
 }
 
-.nav-link.active {
-  background: #111827;
-  color: white;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+.main-container.layout-tablet :deep(.nav-list) {
+  flex-direction: row;
+  gap: 0.75rem;
 }
 
-.nav-link svg {
-  width: 1.25rem;
-  height: 1.25rem;
+.main-container.layout-tablet :deep(.nav-item) {
+  flex: 1 1 0;
+  display: flex;
 }
 
-/* Main Content Wrapper - Auth Interface Consistency */
+.main-container.layout-tablet :deep(.nav-link) {
+  justify-content: center;
+  flex: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.main-container.layout-tablet :deep(.sidebar-footer) {
+  display: none;
+}
+
+.main-container.layout-mobile {
+  display: block;
+  padding: 1.25rem 1rem;
+}
+
+.main-container.layout-mobile :deep(.sidebar) {
+  position: fixed;
+  top: 5rem;
+  left: 0;
+  width: min(80vw, 320px);
+  height: calc(100vh - 5rem);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.main-container.layout-mobile :deep(.sidebar.open) {
+  transform: translateX(0);
+}
+
 .main-content-wrapper {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(20px);
@@ -315,71 +340,24 @@ const navItems = [
   border: 1px solid rgba(229, 231, 235, 0.5);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  min-height: 400px;
+  min-height: 600px;
 }
 
-/* Standardized Button Styling - Auth Interface Consistency */
-button {
-  border-radius: 20px;
-  border: 1px solid #111827;
-  background-color: #111827;
-  color: #FFFFFF;
-  font-size: 12px;
-  font-weight: bold;
-  padding: 12px 45px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #374151;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-button:active {
-  transform: scale(0.98);
-}
-
-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.2);
-}
-
-button.ghost {
-  background-color: transparent;
-  border-color: #FFFFFF;
-}
-
-button.ghost:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Responsive Design */
 @media (max-width: 1024px) {
   .main-container {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
+}
 
-  .sidebar {
-    position: static;
+@media (min-width: 769px) and (max-width: 1024px) {
+  .main-container {
+    display: flex;
+    flex-direction: column;
   }
 }
 
 @media (max-width: 768px) {
-  .header-container {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .search-container {
-    margin: 0;
-    max-width: none;
-  }
-
   .main-container {
     padding: 1rem;
   }

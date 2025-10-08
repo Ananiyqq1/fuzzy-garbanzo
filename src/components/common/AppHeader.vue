@@ -7,8 +7,8 @@
           <i class="fas fa-graduation-cap"></i>
         </div>
         <div class="brand-info">
-          <h1>HiLCoE Peer</h1>
-          <p>Learning Together</p>
+          <h1>{{ title }}</h1>
+          <p v-if="subtitle">{{ subtitle }}</p>
         </div>
       </div>
 
@@ -28,17 +28,8 @@
 
       <!-- Header Actions -->
       <div class="header-actions">
-        <!-- Mobile Menu Toggle -->
-        <button 
-          v-if="showMobileMenu" 
-          class="action-btn mobile-menu-btn"
-          @click="$emit('toggle-sidebar')"
-        >
-          <i class="fas fa-bars"></i>
-        </button>
-
         <!-- Notifications -->
-        <button v-if="showNotifications" class="action-btn">
+        <button v-if="showNotifications" class="action-btn" @click="$emit('notifications')">
           <i class="fas fa-bell"></i>
           <span v-if="notificationCount > 0" class="notification-badge">{{ notificationCount }}</span>
         </button>
@@ -51,13 +42,29 @@
         <!-- User Profile -->
         <div v-if="showProfile" class="user-profile" @click="$emit('toggle-profile')">
           <img 
-            :src="userAvatar || '/default-avatar.png'" 
-            :alt="userName || 'User'"
-            class="user-avatar"
+          :src="userAvatar || '/default-avatar.png'" 
+          :alt="userName || 'User'"
+          class="user-avatar"
           />
           <span class="user-name">{{ userName || 'User' }}</span>
-          <i class="fas fa-chevron-down"></i>
         </div>
+
+        <!-- Logout -->
+        <button v-if="showLogout" class="action-btn logout-btn" @click="$emit('logout')">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
+
+        <!-- Mobile Menu Toggle -->
+        <button 
+          v-if="showMobileMenu" 
+          class="action-btn mobile-menu-btn"
+          @click="$emit('toggle-sidebar')"
+        >
+          <i class="fas fa-bars"></i>
+        </button>
+
+
+
       </div>
     </div>
   </header>
@@ -74,6 +81,10 @@ const props = defineProps({
   showSearch: {
     type: Boolean,
     default: true
+  },
+  subtitle: {
+    type: String,
+    default: ''
   },
   searchPlaceholder: {
     type: String,
@@ -110,12 +121,16 @@ const props = defineProps({
   userAvatar: {
     type: String,
     default: ''
+  },
+  showLogout: {
+    type: Boolean,
+    default: true
   }
 })
 
 const searchQuery = ref('')
 
-defineEmits(['search', 'toggle-sidebar', 'toggle-theme', 'toggle-profile'])
+defineEmits(['search', 'toggle-sidebar', 'toggle-theme', 'toggle-profile', 'notifications', 'logout'])
 </script>
 
 <style scoped>
@@ -242,6 +257,14 @@ defineEmits(['search', 'toggle-sidebar', 'toggle-theme', 'toggle-profile'])
   height: 1.25rem;
   color: var(--secondary-gray);
   font-size: var(--font-size-base);
+}
+
+.logout-btn {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.logout-btn i {
+  color: var(--error-red);
 }
 
 .mobile-menu-btn {

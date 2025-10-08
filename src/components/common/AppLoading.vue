@@ -1,85 +1,151 @@
 <template>
-  <div class="loading-overlay">
-    <div class="loading-container">
-      <div class="loading-content">
-        <!-- Logo -->
-        <div class="loading-logo">
-          <div class="logo">H</div>
+  <transition name="loading-fade">
+    <div
+      v-if="visible"
+      class="loading-overlay"
+      :class="overlayClasses"
+    >
+      <div class="spinner-wrapper" :class="[`spinner-wrapper--${props.size}`]">
+        <div class="spinner-container" :class="[`spinner-container--${props.size}`]">
+          <div class="spinner" :class="[`spinner--${props.size}`]"></div>
+          <div class="spinner-glow" :class="[`spinner-glow--${props.size}`]"></div>
         </div>
-        
-        <!-- Spinner -->
-        <div class="spinner-container">
-          <div class="spinner"></div>
-          <div class="spinner-glow"></div>
-        </div>
-        
-        <!-- Loading Text -->
         <div class="loading-text">
           <h3>Loading...</h3>
           <p>Please wait while we prepare your experience</p>
         </div>
-        
-        <!-- Progress Dots -->
-        <div class="progress-dots">
-          <div class="dot"></div>
-          <div class="dot"></div>
-          <div class="dot"></div>
-        </div>
       </div>
     </div>
-  </div>
+  </transition>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref, watch, computed } from 'vue';
+
+type LoadingSize = 'medium' | 'large';
+
+interface AppLoadingProps {
+  show?: boolean;
+  duration?: number;
+  size?: LoadingSize;
+  fullScreen?: boolean;
+}
+
+const props = withDefaults(defineProps<AppLoadingProps>(), {
+  show: true,
+  duration: 3000,
+  size: 'medium',
+  fullScreen: false,
+});
+
+const emit = defineEmits<{
+  (event: 'finished'): void;
+}>();
+
+const visible = ref(props.show);
+let timerId: number | undefined;
+
+const overlayClasses = computed(() => ({
+  'loading-overlay--fixed': props.fullScreen,
+  'loading-overlay--borderless': props.size === 'large',
+}));
+
+const startTimer = (): void => {
+  clearTimer();
+  if (props.duration > 0) {
+    timerId = window.setTimeout(() => {
+      visible.value = false;
+      emit('finished');
+    }, props.duration);
+  }
+};
+
+const clearTimer = (): void => {
+  if (timerId) {
+    clearTimeout(timerId);
+    timerId = undefined;
+  }
+};
+
+watch(
+  () => props.show,
+  (value: boolean) => {
+    visible.value = value;
+    if (value) {
+      startTimer();
+    } else {
+      clearTimer();
+    }
+  },
+);
+
+watch(
+  () => props.duration,
+  () => {
+    if (visible.value) {
+      startTimer();
+    }
+  },
+);
+
+onMounted(() => {
+  if (visible.value) {
+    startTimer();
+  }
+});
+
+onUnmounted(() => {
+  clearTimer();
+});
 </script>
 
 <style scoped>
+
+
 .loading-overlay {
   position: fixed;
   inset: 0;
   background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  z-index: 1100;
+  padding-top: clamp(2rem, 6vh, 4rem);
+  z-index: 1500;
   backdrop-filter: blur(20px);
 }
 
-.loading-container {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(20px);
-  border-radius: 1.5rem;
-  border: 1px solid rgba(229, 231, 235, 0.5);
-  padding: 3rem 2rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  min-width: 320px;
-  max-width: 400px;
+.loading-overlay--fixed {
+  padding-top: clamp(2.5rem, 8vh, 5rem);
 }
 
-.loading-content {
+.loading-overlay--borderless {
+  padding: 0;
+}
+
+.spinner-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  /* justify-content: center; */
+  gap: 1.75rem;
+  padding: 2rem 3rem;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(229, 231, 235, 0.4);
+  box-shadow: 0 25px 55px -16px rgba(17, 24, 39, 0.28);
+  max-width: 420px;
+  text-align: center;
 }
 
-.loading-logo {
-  margin-bottom: 0.5rem;
-}
-
-.logo {
-  width: 4rem;
-  height: 4rem;
-  background: linear-gradient(135deg, #111827 0%, #374151 100%);
-  border-radius: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: bold;
-  font-size: 1.5rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+.spinner-wrapper--large {
+  gap: 3rem;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .spinner-container {
@@ -89,26 +155,50 @@
   justify-content: center;
 }
 
+.spinner-container--large {
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+}
+
 .spinner {
-  width: 3rem;
-  height: 3rem;
-  border: 3px solid rgba(17, 24, 39, 0.1);
-  border-top: 3px solid #111827;
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 4px solid rgba(17, 24, 39, 0.12);
+  border-top: 4px solid #111827;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   position: relative;
   z-index: 2;
 }
 
+.spinner--large {
+  width: 8.5rem;
+  height: 8.5rem;
+  border-width: 7px;
+}
+
 .spinner-glow {
   position: absolute;
-  width: 4rem;
-  height: 4rem;
+  width: 6rem;
+  height: 6rem;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(17, 24, 39, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(17, 24, 39, 0.18) 0%, transparent 72%);
   animation: pulse 2s ease-in-out infinite;
 }
 
+.spinner-glow--large {
+  width: 11rem;
+  height: 11rem;
+}
+
+.spinner-wrapper--large .loading-text h3 {
+  font-size: 1.75rem;
+}
+
+.spinner-wrapper--large .loading-text p {
+  font-size: 1.125rem;
+}
 .loading-text h3 {
   font-size: 1.25rem;
   font-weight: bold;
@@ -124,32 +214,6 @@
   font-size: 0.875rem;
   margin: 0;
   line-height: 1.4;
-}
-
-.progress-dots {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  background: #111827;
-  border-radius: 50%;
-  animation: bounce 1.4s ease-in-out infinite both;
-}
-
-.dot:nth-child(1) {
-  animation-delay: -0.32s;
-}
-
-.dot:nth-child(2) {
-  animation-delay: -0.16s;
-}
-
-.dot:nth-child(3) {
-  animation-delay: 0s;
 }
 
 @keyframes spin {
@@ -181,27 +245,13 @@
 }
 
 /* Responsive Design */
-@media (max-width: 480px) {
-  .loading-container {
-    margin: 1rem;
-    padding: 2rem 1.5rem;
-    min-width: auto;
-  }
-  
-  .logo {
-    width: 3rem;
-    height: 3rem;
-    font-size: 1.25rem;
-  }
-  
-  .spinner {
-    width: 2.5rem;
-    height: 2.5rem;
-  }
-  
-  .spinner-glow {
-    width: 3.5rem;
-    height: 3.5rem;
-  }
+.loading-fade-enter-active,
+.loading-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.loading-fade-enter-from,
+.loading-fade-leave-to {
+  opacity: 0;
 }
 </style>

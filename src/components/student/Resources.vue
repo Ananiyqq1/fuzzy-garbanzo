@@ -1,14 +1,21 @@
 <template>
   <div class="resources">
     <div class="page-shell">
+      <AppLoading
+        :show="ui.loading"
+        size="large"
+        :duration="3000"
+        @finished="ui.loading = false"
+      />
+
       <div class="header-row">
         <AppContentHeader
           title="Learning Resources"
           subtitle="Access study materials, lecture notes, and other resources"
         />
-        <AppButton class="upload-button" size="small" icon="fas fa-upload" @click="openUploadModal">
+        <!-- <AppButton class="upload-button" size="small" icon="fas fa-upload" @click="openUploadModal">
           Upload Resource
-        </AppButton>
+        </AppButton> -->
       </div>
 
       <AppTabs v-model="activeFilter" :tabs="filterTabs" />
@@ -52,8 +59,6 @@
         </AppCard>
       </div>
 
-      <AppLoading v-if="ui.loading" />
-
       <ResourcePreviewModal
         v-if="ui.modals.preview"
         :resource="ui.modals.preview"
@@ -71,159 +76,149 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted, reactive, computed, ref } from 'vue';
 import AppButton from '../common/AppButton.vue';
 import AppCard from '../common/AppCard.vue';
 import AppContentHeader from '../common/AppContentHeader.vue';
 import AppLoading from '../common/AppLoading.vue';
 import AppTabs from '../common/AppTabs.vue';
+import { studentResources } from '../../data/studentResources';
+import type { StudentResource, ResourceType } from '../../types/student';
 import ResourcePreviewModal from './modals/ResourcePreviewModal.vue';
 import UploadResourceModal from './modals/UploadResourceModal.vue';
- 
-// Local UI and student data replacing stores
-const ui = reactive({
+
+interface UiState {
+  loading: boolean;
+  notify: (msg: string, type?: string) => void;
+  modals: {
+    preview: StudentResource & { typeLabel: string } | null;
+    upload: boolean;
+  };
+}
+
+type PreferenceCategory =
+  | 'all'
+  | 'programming'
+  | 'databases'
+  | 'systems'
+  | 'web-mobile'
+  | 'ict-research'
+  | 'specialized';
+
+interface TabItem {
+  value: PreferenceCategory;
+  label: string;
+  icon?: string;
+}
+
+interface StudentState {
+  resources: StudentResource[];
+}
+
+interface UploadForm {
+  title: string;
+}
+
+const ui: UiState = reactive({
   loading: false,
-  notify: (msg, type) => console.log(type ? `${type}: ${msg}` : msg),
+  notify: (msg: string, type?: string) => console.log(type ? `${type}: ${msg}` : msg),
   modals: {
     preview: null,
     upload: false,
   },
 });
 
-const student = reactive({
-  resources: [
-    {
-      id: 1,
-      title: 'Data Structures Lecture Notes',
-      type: 'lectures',
-      course: 'CS201',
-      metaIcon: 'fas fa-calendar',
-      metaText: 'Updated: Oct 15, 2023',
-      description: 'Comprehensive notes covering arrays, linked lists, trees, and graphs with examples and algorithms.',
-      actionLabel: 'Download'
-    },
-    {
-      id: 2,
-      title: 'Introduction to Algorithms',
-      type: 'books',
-      course: 'CS301',
-      metaIcon: 'fas fa-user',
-      metaText: 'Cormen et al.',
-      description: 'The famous CLRS textbook covering fundamental algorithms and data structures.',
-      actionLabel: 'Download'
-    },
-    {
-      id: 3,
-      title: 'Neural Networks Overview',
-      type: 'papers',
-      course: 'CS401',
-      metaIcon: 'fas fa-calendar',
-      metaText: 'Published: 2022',
-      description: 'Recent survey paper on advances in deep learning and neural network architectures.',
-      actionLabel: 'Download'
-    },
-    {
-      id: 4,
-      title: 'Database Systems Video Lectures',
-      type: 'lectures',
-      course: 'CS202',
-      metaIcon: 'fas fa-clock',
-      metaText: '4h 25m',
-      description: 'Recorded lectures covering SQL, normalization, and transaction processing.',
-      actionLabel: 'Watch'
-    },
-    {
-      id: 5,
-      title: 'Computer Networking Textbook',
-      type: 'books',
-      course: 'CS305',
-      metaIcon: 'fas fa-user',
-      metaText: 'Kurose & Ross',
-      description: 'Comprehensive guide to computer networking concepts and protocols.',
-      actionLabel: 'Download'
-    },
-    {
-      id: 6,
-      title: 'Machine Learning Research Paper',
-      type: 'papers',
-      course: 'CS402',
-      metaIcon: 'fas fa-calendar',
-      metaText: 'Published: 2023',
-      description: 'Latest research on supervised learning algorithms and their applications.',
-      actionLabel: 'Download'
-    }
-  ],
+const student: StudentState = reactive({
+  resources: studentResources.map((resource) => ({ ...resource })),
 });
 
-const activeFilter = ref('all');
+const activeFilter = ref<PreferenceCategory>('all');
 
-const filterTabs = [
+const filterTabs: TabItem[] = [
   { value: 'all', label: 'All Resources', icon: 'fas fa-layer-group' },
-  { value: 'lectures', label: 'Lecture Notes', icon: 'fas fa-file-pdf' },
-  { value: 'books', label: 'Books', icon: 'fas fa-book' },
-  { value: 'papers', label: 'Research Papers', icon: 'fas fa-file-alt' }
+  { value: 'programming', label: 'Programming', icon: 'fas fa-code' },
+  { value: 'databases', label: 'Databases', icon: 'fas fa-database' },
+  { value: 'systems', label: 'Systems', icon: 'fas fa-network-wired' },
+  { value: 'web-mobile', label: 'Web & Mobile', icon: 'fas fa-globe' },
+  { value: 'ict-research', label: 'ICT & Research', icon: 'fas fa-chart-line' },
+  { value: 'specialized', label: 'Specialized', icon: 'fas fa-brain' },
 ];
 
-const filteredResources = computed(() => {
+const categoryKeywords: Record<Exclude<PreferenceCategory, 'all'>, string[]> = {
+  programming: ['program', 'algorithm', 'software', 'code'],
+  databases: ['database', 'data', 'sql'],
+  systems: ['system', 'network', 'unix', 'assembly'],
+  'web-mobile': ['web', 'mobile'],
+  'ict-research': ['ict', 'project', 'research'],
+  specialized: ['artificial', 'ai', 'compiler', 'graphics', 'retrieval'],
+};
+
+const filteredResources = computed<StudentResource[]>(() => {
   if (activeFilter.value === 'all') {
     return student.resources;
   }
-  return student.resources.filter(resource => 
-    resource.type === activeFilter.value
-  );
+
+  const keywords = categoryKeywords[activeFilter.value];
+  if (!keywords) {
+    return student.resources;
+  }
+
+  return student.resources.filter((resource) => {
+    const haystack = `${resource.title} ${resource.description} ${resource.course}`.toLowerCase();
+    return keywords.some((keyword) => haystack.includes(keyword));
+  });
 });
 
 onMounted(() => {
   loadResources();
 });
 
-function loadResources() {
+const loadResources = (): void => {
   ui.loading = true;
-  setTimeout(() => { ui.loading = false; }, 300);
-}
+};
 
-function setActiveFilter(filter) {
+const setActiveFilter = (filter: PreferenceCategory): void => {
   activeFilter.value = filter;
-}
+};
 
-function getResourceIcon(type) {
-  const icons = {
+const getResourceIcon = (type: ResourceType): string => {
+  const icons: Record<ResourceType | 'videos', string> = {
     lectures: 'fas fa-file-pdf',
     books: 'fas fa-book',
     papers: 'fas fa-file-alt',
-    videos: 'fas fa-file-video'
+    videos: 'fas fa-file-video',
   };
   return icons[type] || 'fas fa-file';
-}
+};
 
-function handleResourceAction(resource) {
+const handleResourceAction = (resource: StudentResource): void => {
   ui.notify(`${resource.actionLabel}: ${resource.title}`);
-}
+};
 
-function openPreview(resource) {
+const openPreview = (resource: StudentResource): void => {
   ui.modals.preview = {
     ...resource,
     typeLabel: getTypeLabel(resource.type),
   };
-}
+};
 
-function handleResourceDownload(resource) {
+const handleResourceDownload = (resource: StudentResource): void => {
   ui.notify(`Downloading: ${resource.title}`);
   ui.modals.preview = null;
-}
+};
 
-function openUploadModal() {
+const openUploadModal = (): void => {
   ui.modals.upload = true;
-}
+};
 
-function submitUpload(form) {
+const submitUpload = (form: UploadForm): void => {
   ui.modals.upload = false;
   ui.notify(`Uploaded: ${form.title}`, 'success');
-}
+};
 
-function getTypeLabel(value) {
-  const map = {
+const getTypeLabel = (value: ResourceType): string => {
+  const map: Record<string, string> = {
     lectures: 'Lecture Notes',
     lecture: 'Lecture Notes',
     books: 'Book',
@@ -234,7 +229,7 @@ function getTypeLabel(value) {
     video: 'Video',
   };
   return map[value] || 'Resource';
-}
+};
 </script>
 
 <style scoped>
@@ -253,37 +248,20 @@ function getTypeLabel(value) {
 .resources {
   min-height: 100vh;
   background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  padding: 2rem;
   display: flex;
   justify-content: center;
-  padding: 3rem 2rem;
 }
 
 .page-shell {
   width: 100%;
   max-width: 1280px;
-  padding: 2.25rem 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  position: relative;
 }
 
-.resources :deep(.tab-list) {
-  justify-content: center;
-  gap: 0.75rem;
-  background: transparent;
-  border: none;
-  padding: 0;
-}
-
-.resources :deep(.tab-trigger) {
-  padding: 0.65rem 1.5rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(229, 231, 235, 0.6);
-  color: #374151;
-  font-weight: 600;
-  transition: all 0.25s ease;
-}
 
 .resources :deep(.tab-trigger:not(.active):hover) {
   background: rgba(17, 24, 39, 0.08);
@@ -420,13 +398,100 @@ function getTypeLabel(value) {
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .resources {
+    padding: 1.5rem;
+  }
+
+  .page-shell {
+    gap: 1.5rem;
+  }
+
+  .resources-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .resource-card {
+    padding: 1.25rem;
+  }
+
+  .resource-header {
+    gap: 1rem;
+  }
+
+  .resource-actions {
+    gap: 0.5rem;
+  }
+}
+
 @media (max-width: 768px) {
+  .resources {
+    padding: 1rem;
+  }
+
+  .page-shell {
+    gap: 1rem;
+  }
+
+  .header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .upload-button {
+    align-self: flex-start;
+  }
+
   .resources-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
-  
+
+  .resource-card {
+    padding: 1rem;
+  }
+
+  .resource-title {
+    font-size: 1rem;
+  }
+
+  .resource-meta {
+    font-size: 0.85rem;
+  }
+
+  .resource-description {
+    font-size: 0.9rem;
+  }
+
   .resource-actions {
     flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .resource-actions :deep(.btn) {
+    width: 100%;
+    font-size: 0.8rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .resources {
+    padding: 0.5rem;
+  }
+
+  .resource-card {
+    padding: 0.75rem;
+  }
+
+  .resource-title {
+    font-size: 0.95rem;
+  }
+
+  .resource-description {
+    font-size: 0.85rem;
   }
 }
 </style>

@@ -9,7 +9,28 @@
 
       <AppCard class="profile-card" variant="elevated">
         <div class="profile-header">
-          <img :src="studentData.avatar" alt="Profile Photo" class="profile-photo" />
+          <div class="avatar-wrapper">
+            <img
+              :src="isEditing ? editData.avatar || studentData.avatar : studentData.avatar"
+              alt="Profile Photo"
+              class="profile-photo"
+            />
+            <button
+              v-if="isEditing"
+              class="change-photo-btn"
+              type="button"
+              @click="triggerAvatarUpload"
+            >
+              Change Photo
+            </button>
+            <input
+              ref="fileInput"
+              class="avatar-input"
+              type="file"
+              accept="image/*"
+              @change="handleAvatarSelected"
+            />
+          </div>
           <div class="profile-info">
             <h2>{{ studentData.name }}</h2>
             <p>{{ studentData.username }}</p>
@@ -126,6 +147,7 @@ import AppTextarea from '../common/AppTextarea.vue'
 // Reactive data
 const isEditing = ref(false)
 const newInterest = ref('')
+const fileInput = ref(null)
 
 const studentData = reactive({
   name: 'John Doe',
@@ -146,6 +168,7 @@ const editData = reactive({
   personalEmail: '',
   overallScore: 0,
   bio: '',
+  avatar: '',
   interests: []
 })
 
@@ -160,6 +183,7 @@ const toggleEdit = () => {
     personalEmail: studentData.personalEmail,
     overallScore: studentData.overallScore,
     bio: studentData.bio,
+    avatar: studentData.avatar,
     interests: [...studentData.interests]
   })
 }
@@ -167,6 +191,10 @@ const toggleEdit = () => {
 const cancelEdit = () => {
   isEditing.value = false
   newInterest.value = ''
+  editData.avatar = studentData.avatar
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
 }
 
 const saveProfile = () => {
@@ -174,6 +202,9 @@ const saveProfile = () => {
   Object.assign(studentData, editData)
   isEditing.value = false
   newInterest.value = ''
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
   // In a real app, you would send this to the backend
   console.log('Profile updated:', studentData)
 }
@@ -196,6 +227,25 @@ const removeInterest = (index) => {
   editData.interests.splice(index, 1)
 }
 
+const triggerAvatarUpload = () => {
+  if (fileInput.value) {
+    fileInput.value.click()
+  }
+}
+
+const handleAvatarSelected = (event) => {
+  const [file] = event.target.files || []
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    if (typeof e.target?.result === 'string') {
+      editData.avatar = e.target.result
+    }
+  }
+  reader.readAsDataURL(file)
+}
+
 onMounted(() => {
   console.log('Student profile mounted')
 })
@@ -210,21 +260,20 @@ onMounted(() => {
 
 .student-profile {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Montserrat', sans-serif;
-  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
   min-height: 100vh;
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
   padding: 3rem 2rem;
-  color: #111827;
   display: flex;
   justify-content: center;
 }
 
 .page-shell {
   width: 100%;
-  max-width: 960px;
-  padding: 2.5rem;
+  max-width: 1200px;
   display: flex;
   flex-direction: column;
-  gap: 2.25rem;
+  gap: 2rem;
+  position: relative;
 }
 
 .profile-card {
@@ -238,6 +287,7 @@ onMounted(() => {
   backdrop-filter: blur(18px);
   box-shadow: 0 30px 55px -32px rgba(15, 23, 42, 0.5);
   transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  width: 100%;
 }
 
 .profile-card:hover {
@@ -249,6 +299,8 @@ onMounted(() => {
 .profile-header {
   display: flex;
   align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
   margin-bottom: 30px;
   padding-bottom: 20px;
   border-bottom: 1px solid rgba(229, 231, 235, 0.7);
@@ -259,8 +311,47 @@ onMounted(() => {
   height: 120px;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 30px;
   border: 3px solid rgba(17, 24, 39, 0.1);
+}
+
+.avatar-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 30px;
+}
+
+.change-photo-btn {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.35rem 0.9rem;
+  font-size: 0.75rem;
+  border-radius: 9999px;
+  text-transform: none;
+  letter-spacing: normal;
+  border: none;
+  background: linear-gradient(135deg, #111827 0%, #374151 100%);
+  color: #ffffff;
+  box-shadow: 0 8px 16px -12px rgba(15, 23, 42, 0.9);
+}
+
+.change-photo-btn:hover {
+  transform: translate(-50%, -2px);
+}
+
+.avatar-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .profile-info h2 {
@@ -366,6 +457,7 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   margin-top: 10px;
+  flex-wrap: wrap;
 }
 
 .interest-input-container input {
@@ -375,7 +467,7 @@ onMounted(() => {
 .action-buttons {
   display: flex;
   justify-content: center;
-  gap: 15px;
+  gap: 1rem;
   margin-top: 20px;
 }
 
@@ -383,31 +475,106 @@ onMounted(() => {
   padding: 0.65rem 1.8rem;
 }
 
+@media (max-width: 1024px) {
+  .student-profile {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .page-shell {
+    gap: 1.5rem;
+  }
+
+  .profile-card {
+    padding: 2rem;
+    border-radius: 1.25rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .profile-header {
     flex-direction: column;
+    text-align: center;
+    gap: 1rem;
   }
-  
+
   .profile-photo {
-    margin-right: 0;
     margin-bottom: 20px;
   }
-  
-  .profile-details {
+
+  .avatar-wrapper {
+    margin-right: 0;
+  }
+
+  .student-profile {
+    padding: 2rem 1rem;
+  }
+
+  .page-shell {
+    gap: 1.25rem;
+  }
+
+  .profile-card {
+    padding: 1.75rem;
+  }
+
+  .detail-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .action-buttons {
     flex-direction: column;
+    align-items: stretch;
   }
-  
-  button {
+
+  .action-buttons :deep(button),
+  .action-buttons :deep(.btn) {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .student-profile {
+    padding: 1.5rem 0.75rem;
+  }
+
+  .profile-card {
+    padding: 1.25rem;
+    gap: 1.5rem;
+  }
+
+  .profile-header {
+    gap: 0.75rem;
+  }
+
+  .profile-photo {
+    width: 90px;
+    height: 90px;
+  }
+
+  .change-photo-btn {
+    bottom: -12px;
+  }
+
+  .detail-grid {
+    gap: 0.75rem;
+  }
+
+  .interest-input-container {
+    flex-direction: column;
+  }
+
+  .interest-input-container input {
     width: 100%;
   }
 
-  .profile-container {
-    padding: 25px;
+  .action-buttons {
+    gap: 0.75rem;
   }
 }
 </style>
