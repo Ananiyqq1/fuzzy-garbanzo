@@ -35,7 +35,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { verify_otp } from './api/auth/VerifyOTP'
+import { verify_otp } from './api/VerifyOTP'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = useRouter()

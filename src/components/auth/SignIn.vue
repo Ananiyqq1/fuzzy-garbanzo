@@ -45,7 +45,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import login from './api/auth/Login'
+import login from './api/Login'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const emit = defineEmits(['switch-to-signup'])

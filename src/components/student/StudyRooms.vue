@@ -84,7 +84,7 @@ import AppLoading from '../common/AppLoading.vue';
 import AppStatusBadge from '../common/AppStatusBadge.vue';
 import AppTabs from '../common/AppTabs.vue';
 import StudyRoomChatModal from './modals/StudyRoomChatModal.vue';
-import getRooms from '../auth/api/peer/GetRooms';
+import getRooms from './api/GetRooms';
 
 // import StudyRoomChatModal from './modals/StudyRoomChatModal.vue';
 
