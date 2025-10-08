@@ -64,19 +64,19 @@
         </div>
 
         <div class="form-field">
-          <label for="signup-email">Institute Email</label>
+          <label for="signup-institute-email">Institute Email</label>
           <input
             type="email"
-            id="signup-email"
+            id="signup-institute-email"
             name="instituteEmail"
-            v-model="email"
+            v-model="instituteEmail"
             placeholder="Institute Email"
             required
             autocomplete="email"
             inputmode="email"
           />
-          <div class="error-message" :class="{ show: emailError }">
-            {{ emailError }}
+          <div class="error-message" :class="{ show: instituteEmailError }">
+            {{ instituteEmailError }}
           </div>
         </div>
 
@@ -107,102 +107,33 @@
           <div class="helper-text">Optional · Let peers know more about you.</div>
         </div>
       </div>
-    <!-- Full Name Input -->
-    <label for="signup-name">Full Name</label>
-    <input 
-      type="text" 
-      id="signup-name" 
-      v-model="name"
-      placeholder="Full Name" 
-      required 
-      minlength="2"
-    />
-    <div class="error-message" :class="{ show: nameError }">
-      {{ nameError }}
-    </div>
-    
-    <!-- user name Input -->
-    <label for="user-name">User Name</label>
-    <input 
-      type="text" 
-      id="user-name" 
-      v-model="userName"
-      placeholder="User Name"
-      required 
-      pattern="[A-Za-z0-9]+" 
-    />
-    <div class="error-message" :class="{ show: userNameError }">
-      {{ userNameError }}
-    </div>
-    
-    <!-- Email Input -->
-    <label for="signup-institute-email">Institute Email</label>
-    <input 
-      type="email" 
-      id="signup-institute-email" 
-      v-model="instituteEmail"
-      placeholder="Institute Email" 
-      required 
-    />
-    <div class="error-message" :class="{ show: instituteEmailError }">
-      {{ instituteEmailError }}
-    </div>
 
-    <!-- Email Input -->
-    <label for="signup-email">Email</label>
-    <input 
-      type="email" 
-      id="signup-email" 
-      v-model="email"
-      placeholder="Email" 
-      required 
-    />
-    <div class="error-message" :class="{ show: emailError }">
-      {{ emailError }}
+      <button type="submit" :disabled="!isFormValid || isLoading">
+        <span v-if="isLoading">Creating Account...</span>
+        <span v-else>Sign Up</span>
+      </button>
     </div>
-    
-    <!-- Password Input -->
-    <label for="signup-password">Password</label>
-    <input 
-      type="password" 
-      id="signup-password" 
-      v-model="password"
-      placeholder="Password" 
-      required 
-      minlength="8" 
-    />
-    <div class="error-message" :class="{ show: passwordError }">
-      {{ passwordError }}
-    </div>
-
-    <button type="submit" :disabled="!isFormValid || isLoading">
-      <span v-if="isLoading">Creating Account...</span>
-      <span v-else>Sign Up</span>
-    </button>
   </form>
 </template>
 
 <script setup>
-import { useAuthStore } from '@/stores/useAuthStore'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/useAuthStore'
 import { useSignUpData } from '../../composables/useSignUpData'
 
 const { signUpData, setSignUpData } = useSignUpData()
 
 const name = ref(signUpData.name)
 const username = ref(signUpData.username)
-const email = ref(signUpData.instituteEmail)
+const instituteEmail = ref(signUpData.instituteEmail)
 const personalEmail = ref(signUpData.personalEmail)
-const name = ref('')
-const userName = ref('')
-const instituteEmail = ref('')
-const email = ref('')
 const password = ref('')
 const bio = ref(signUpData.bio)
 const isLoading = ref(false)
 
 const router = useRouter()
+const auth = useAuthStore()
 
 const nameError = computed(() => {
   if (!name.value) return ''
@@ -213,27 +144,18 @@ const nameError = computed(() => {
 const usernameError = computed(() => {
   if (!username.value) return ''
   if (username.value.trim().length < 3) return 'Username must be at least 3 characters long.'
-const userNameError = computed(() => {
-  if (!userName.value) return ''
-  if (!/^[A-Za-z0-9]+$/.test(userName.value)) return 'Please enter a valid user name.'
   return ''
 })
 
-const emailError = computed(() => {
-  if (!email.value) return ''
-  if (!email.value.includes('@')) return 'Please enter a valid institute email address.'
+const instituteEmailError = computed(() => {
+  if (!instituteEmail.value) return ''
+  if (!instituteEmail.value.includes('@')) return 'Please enter a valid institute email address.'
   return ''
 })
 
 const personalEmailError = computed(() => {
   if (!personalEmail.value) return ''
   if (!personalEmail.value.includes('@')) return 'Please enter a valid personal email address.'
-  return ''
-})
-})
-const instituteEmailError = computed(() => {
-  if (!instituteEmail.value) return ''
-  if (!instituteEmail.value.includes('@hilcoeschool.com')) return 'Please enter a valid hilcoe email address.'
   return ''
 })
 
@@ -244,48 +166,41 @@ const passwordError = computed(() => {
 })
 
 const isFormValid = computed(() => {
-  return name.value && userName.value && email.value && password.value && 
-         !nameError.value && !userNameError.value && !emailError.value && !passwordError.value
   return (
     name.value &&
     username.value &&
-    email.value &&
+    instituteEmail.value &&
     password.value &&
     !nameError.value &&
     !usernameError.value &&
-    !emailError.value &&
-    !passwordError.value &&
-    !personalEmailError.value
+    !instituteEmailError.value &&
+    !passwordError.value
   )
 })
 
 async function submit() {
   if (!isFormValid.value || isLoading.value) return
 
-  isLoading.value = true
-  
-  try {   
-   const auth = useAuthStore()
-  auth.setTempPayload({
-    name: name.value,
-    user_name: userName.value,
-    institute_email: instituteEmail.value,
-    email: email.value,
-    password: password.value
-  });
-    router.push('/auth/preferences')
-
   try {
+    auth.setTempPayload({
+      name: name.value.trim(),
+      user_name: username.value.trim(),
+      institute_email: instituteEmail.value.trim(),
+      email: personalEmail.value.trim(),
+      password: password.value
+    })
+
     setSignUpData({
       name: name.value.trim(),
       username: username.value.trim(),
-      instituteEmail: email.value.trim(),
+      instituteEmail: instituteEmail.value.trim(),
       personalEmail: personalEmail.value.trim(),
       bio: bio.value.trim()
     })
-    router.push('/preferences')
+
+    router.push('/auth/preferences')
   } catch (error) {
-    console.error('Sign up error:', error)
+    console.error('Sign up navigation error:', error)
   } finally {
     isLoading.value = false
   }

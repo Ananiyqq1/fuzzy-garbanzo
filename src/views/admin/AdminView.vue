@@ -16,6 +16,7 @@
       @notifications="showNotificationToast"
       @toggle-sidebar="toggleSidebar"
       @toggle-profile="navigateToProfile"
+      @logout="handleLogout"
     />
 
     <StudentNotificationToast
@@ -31,6 +32,7 @@
         :is-open="sidebarOpen"
         :show-overlay="isMobile"
         @close="sidebarOpen = false"
+        @logout="handleLogout"
       />
 
       <!-- Main Content -->
@@ -44,12 +46,14 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/useAuthStore'
 import AppHeader from '../../components/common/AppHeader.vue'
 import AppSidebar from '../../components/common/AppSidebar.vue'
 import AppCard from '../../components/common/AppCard.vue'
 import StudentNotificationToast from '../../components/student/modals/StudentNotificationToast.vue'
 
 const router = useRouter()
+const auth = useAuthStore()
 const searchQuery = ref('')
 const isMobile = ref(false)
 const isTablet = ref(false)
@@ -67,6 +71,11 @@ let resizeListener = null
 // Methods
 const navigateToProfile = () => {
   router.push('/admin/profile')
+}
+
+const handleLogout = () => {
+  auth.logout()
+  router.push('/auth')
 }
 
 const toggleSidebar = () => {
@@ -101,7 +110,7 @@ onUnmounted(() => {
 const navMenuItems = computed(() => [
   {
     name: 'Dashboard',
-    path: '/admin/dashboard',
+    path: '/admin/',
     icon: 'fas fa-home'
   },
   {

@@ -101,6 +101,9 @@ router.beforeEach(async (to, from, next) => {
   const userRoles = auth.user?.roles || [];
 
   if (requiresAuth && !auth.isAuthenticated) {
+    if (auth.tempPayload && to.meta.role === 'peer') {
+      return next();
+    }
     return next("/auth");
   }
 
@@ -119,5 +122,6 @@ router.beforeEach(async (to, from, next) => {
     }
   }
   next();
+  
 });
 export default router;

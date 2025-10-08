@@ -71,8 +71,8 @@ import AppCard from '../common/AppCard.vue';
 import AppContentHeader from '../common/AppContentHeader.vue';
 import AppTabs from '../common/AppTabs.vue';
 import { useAuthStore } from '@/stores/useAuthStore';
-import SignUp from '../auth/SignUp.vue';
-import { signUp } from '../auth/api/SignUp';
+// import SignUp from '../auth/SignUp.vue';
+// import { signUp } from '../auth/api/SignUp';
 const auth = useAuthStore()
 import {
   studentPreferenceCourses,
@@ -159,31 +159,32 @@ async function continueOtp() {
     signUp: signUpDetails,
     selectedCourses: courseSelections,
   });
-  alert(`Success! ${selectedCount.value} courses selected. Redirecting to otp verification...`);
-  router.push('/otp');
-
   console.log('Selected courses:', selectedCourses.value);
-  var res = await signUp({
-    ...userInfo,
-    interests: selectedCourses.value,
-    bio: "Please add a field to add bio Ananiya"
-  })
-  //add logics here like when the email is registered before and so
-  if (res.status !== 200) {
-    router.push("/auth")
-    return;
-  }
-  if (res.data.verification_required) {
-    router.push('/otp/${res.data.otp_session_id}}');
-    return
-  }
-  else if (!res.data.verification_required) {
-    await auth.fetchUser()
-    router.push('/');
-  }
-  else
-    router.push("/auth")
-  return;
+  router.push('/')
+  // const res = await signUp({
+  //   ...userInfo,
+  //   interests: selectedCourses.value,
+  //   bio: 'Please add a field to add bio Ananiya'
+  // })
+
+  // if (res.status !== 200) {
+  //   alert('Sign up failed. Please try again.')
+  //   router.push('/auth')
+  //   return
+  // }
+
+  // if (res.data.verification_required && res.data.otp_session_id) {
+  //   alert(`Success! ${selectedCount.value} courses selected. Redirecting to OTP verification...`)
+  //   router.push(`/auth/otp/${res.data.otp_session_id}`)
+  //   return
+  // }
+
+  // if (!res.data.verification_required) {
+  //   await auth.fetchUser()
+  //   router.push('/')
+  //   return
+  // }
+
 }
 </script>
 

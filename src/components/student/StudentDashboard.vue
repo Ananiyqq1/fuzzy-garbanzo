@@ -12,8 +12,8 @@
           :key="room.id"
           class="room-card"
         >
-          <div class="room-status" :class="getStatusClass(room.status)">
-            {{ getStatusLabel(room.status) }}
+          <div class="room-status" :class="getStatusClass(room)">
+            {{ getStatusLabel(room) }}
           </div>
           <h3 class="room-title">{{ room.name }}</h3>
           <div class="room-capacity">
@@ -82,9 +82,6 @@
                 {{ resource.metaText }}
               </span>
             </div>
-            <div class="resource-description">
-              {{ resource.description }}
-            </div>
             <div class="resource-actions">
               <!-- <AppButton
                 size="small"
@@ -139,7 +136,8 @@ import AppCard from '../common/AppCard.vue';
 import AppContentHeader from '../common/AppContentHeader.vue';
 import { studentRooms } from '../../data/studentRooms';
 import { studentResources } from '../../data/studentResources';
-import type { StudentResource, StudentRoom, StudentStatus } from '../../types/student';
+import { studentPreferenceFilters } from '../../data/studentPreferences';
+import type { StudentResource, StudentRoom } from '../../types/student';
 
 interface TopContributor {
   id: number;
@@ -152,6 +150,31 @@ interface TopContributor {
 
 const availableRooms = computed<StudentRoom[]>(() =>
   studentRooms.filter((room) => room.status === 'available')
+);
+
+type StudyRoomCategory =
+  | 'programming'
+  | 'databases'
+  | 'systems'
+  | 'web-mobile'
+  | 'ict-research'
+  | 'specialized';
+
+const categoryKeywords: Record<StudyRoomCategory, string[]> = {
+  programming: ['program', 'algorithm', 'software', 'code'],
+  databases: ['database', 'data', 'sql'],
+  systems: ['system', 'network', 'unix', 'assembly'],
+  'web-mobile': ['web', 'mobile'],
+  'ict-research': ['ict', 'project', 'research'],
+  specialized: ['artificial', 'ai', 'compiler', 'graphics', 'retrieval']
+};
+
+const preferenceLabelByCategory = studentPreferenceFilters.reduce<Record<string, string>>(
+  (acc, filter) => {
+    acc[filter.value] = filter.label;
+    return acc;
+  },
+  {}
 );
 
 const bookRecommendations = computed<StudentResource[]>(() =>
@@ -199,30 +222,31 @@ const formatUpdatedDate = (isoDate: string): string => {
   return updatedFormatter.format(new Date(isoDate));
 };
 
-const getStatusClass = (status: StudentStatus): string => {
-  switch (status) {
-    case 'available':
-      return 'status-available';
-    case 'occupied':
-      return 'status-occupied';
-    case 'full':
-      return 'status-full';
-    default:
-      return '';
+const determineRoomCategory = (room: StudentRoom): StudyRoomCategory | 'general' => {
+  const normalizedFeatures = room.features.map((feature) => feature.toLowerCase());
+  for (const [category, keywords] of Object.entries(categoryKeywords)) {
+    if (
+      keywords.some((keyword) =>
+        normalizedFeatures.some((feature) => feature.includes(keyword))
+      )
+    ) {
+      return category as StudyRoomCategory;
+    }
   }
+  return 'general';
 };
 
-const getStatusLabel = (status: StudentStatus): string => {
-  switch (status) {
-    case 'available':
-      return 'Available';
-    case 'occupied':
-      return 'Occupied';
-    case 'full':
-      return 'Fully Booked';
-    default:
-      return status;
+const getStatusClass = (room: StudentRoom): string => {
+  const category = determineRoomCategory(room);
+  return category === 'general' ? 'status-general' : `status-${category}`;
+};
+
+const getStatusLabel = (room: StudentRoom): string => {
+  const category = determineRoomCategory(room);
+  if (category === 'general') {
+    return 'General Study Room';
   }
+  return preferenceLabelByCategory[category] || 'General Study Room';
 };
 
 const handlePrimaryAction = (room: StudentRoom): void => {
@@ -296,17 +320,37 @@ const handlePrimaryAction = (room: StudentRoom): void => {
   text-transform: uppercase;
 }
 
-.status-available {
-  background: linear-gradient(135deg, #10b981, #059669);
+.status-general {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
   color: #fff;
 }
 
-.status-occupied {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+.status-programming {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
 }
 
-.status-full {
+.status-databases {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #fff;
+}
+
+.status-systems {
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
+  color: #fff;
+}
+
+.status-web-mobile {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+}
+
+.status-ict-research {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #fff;
+}
+
+.status-specialized {
   background: linear-gradient(135deg, #ef4444, #dc2626);
   color: #fff;
 }
@@ -463,6 +507,11 @@ const handlePrimaryAction = (room: StudentRoom): void => {
   color: #4b5563;
   font-size: 0.95rem;
   line-height: 1.55;
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .resource-actions {

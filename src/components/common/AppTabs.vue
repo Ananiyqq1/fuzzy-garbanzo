@@ -10,6 +10,7 @@
         :aria-selected="tab.value === currentValue"
         @click="selectTab(tab.value)"
       >
+        <i v-if="tab.icon" :class="tab.icon"></i>
         <span>{{ tab.label }}</span>
         <span v-if="tab.badge" class="tab-badge">{{ tab.badge }}</span>
       </button>

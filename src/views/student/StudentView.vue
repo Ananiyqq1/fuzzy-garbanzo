@@ -16,6 +16,7 @@
       @notifications="showNotificationToast"
       @toggle-sidebar="toggleSidebar"
       @toggle-profile="navigateToProfile"
+      @logout="handleLogout"
     />
 
     <StudentNotificationToast
@@ -35,6 +36,7 @@
         :user-role="studentRole"
         :user-avatar="studentAvatar"
         @close="sidebarOpen = false"
+        @logout="handleLogout"
       />
 
       <AppCard class="main-content-wrapper" variant="elevated">
@@ -47,12 +49,14 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/useAuthStore'
 import StudentNotificationToast from '../../components/student/modals/StudentNotificationToast.vue'
 import AppHeader from '../../components/common/AppHeader.vue'
 import AppSidebar from '../../components/common/AppSidebar.vue'
 import AppCard from '../../components/common/AppCard.vue'
 
 const router = useRouter()
+const auth = useAuthStore()
 const searchQuery = ref('')
 const isMobile = ref(false)
 const isTablet = ref(false)
@@ -66,6 +70,11 @@ const notificationCount = ref(0)
 
 let resizeListener
 const toastPosition = computed(() => (isMobile.value ? 'bottom-center' : 'top-right'))
+
+const handleLogout = () => {
+  auth.logout()
+  router.push('/auth')
+}
 
 const navigateToProfile = () => {
   router.push('/profile')
@@ -101,7 +110,7 @@ onUnmounted(() => {
 })
 
 const navMenuItems = computed(() => [
-  { name: 'Dashboard', path: '/dashboard', icon: 'fas fa-home' },
+  { name: 'Dashboard', path: '/', icon: 'fas fa-home' },
   { name: 'My Sessions', path: '/sessions', icon: 'fas fa-calendar-check' },
   { name: 'Resources', path: '/resources', icon: 'fas fa-book' },
   { name: 'Study Rooms', path: '/study-rooms', icon: 'fas fa-users' },

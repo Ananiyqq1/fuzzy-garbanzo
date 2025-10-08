@@ -45,8 +45,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import login from './api/Login'
 import { useAuthStore } from '@/stores/useAuthStore'
+// import login from './api/Login'
 
 const emit = defineEmits(['switch-to-signup'])
 const email = ref('')
@@ -80,7 +80,7 @@ function selectRole(role) {
 }
 
 function goToForgotPassword() {
-  router.push('/forgot-password')
+  router.push('/auth/forgot-password')
 }
 
 function emitSwitchToSignUp() {
@@ -90,31 +90,30 @@ function emitSwitchToSignUp() {
 async function submit() {
   if (!isFormValid.value || isLoading.value) return
 
-  isLoading.value = true
+  // Temporarily bypass API sign-in and navigate directly based on the selected role.
+  // isLoading.value = true
   try {
-    var result = await login({  
+    auth.user = {
+      user_id: 'demo',
+      username: email.value,
+      name: selectedRole.value === 'admin' ? 'Admin User' : 'Student User',
       institute_email: email.value,
-      password: password.value,
-    })
-    if (result.data.verification_required) {
-      router.push(`/auth/otp/${result.data.otp_session_id}`);
-      return;
+      email: email.value,
+      overall_score: 0,
+      profile_photo: '',
+      online_status: true,
+      bio: '',
+      roles: [selectedRole.value === 'admin' ? 'admin' : 'peer'],
+      interests: [],
+      created_at: new Date().toISOString()
     }
-    await auth.fetchUser()
-    if (auth.hasRole("admin")) {
-      router.push("/admin");
-      return;
-
-    } else if (auth.hasRole("peer")) {
-      router.push("/");
-      return;
-
+    if (selectedRole.value === 'admin') {
+      router.push('/admin')
     } else {
-      router.push("/");
-      return;
-    }  
+      router.push('/')
+    }
   } catch (error) {
-    console.error('Sign in error:', error)
+    console.error('Navigation error:', error)
   } finally {
     isLoading.value = false
   }

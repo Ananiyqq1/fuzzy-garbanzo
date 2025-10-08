@@ -43,6 +43,10 @@ export const useAuthStore = defineStore("auth", {
     clearTempPayload() {
       this.tempPayload = null;
     },
+    logout() {
+      this.user = null;
+      this.tempPayload = null;
+    },
     async fetchUser() {
       this.loading = true;
       try {

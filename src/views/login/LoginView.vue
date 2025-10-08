@@ -18,7 +18,7 @@
         <SignUp @switch-to-signin="switchToSignIn" />
       </div>
 
-      <div class="overlay-container" v-if="!isMobile">
+      <div class="overlay-container" v-if="!isCompact">
         <div class="overlay">
           <div class="overlay-panel overlay-left">
             <h1>Welcome Back!</h1>
@@ -38,21 +38,22 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import SignIn from '../../components/auth/SignIn.vue'
 import SignUp from '../../components/auth/SignUp.vue'
 import AppCard from '../../components/common/AppCard.vue'
 
 const isSignUpMode = ref(false)
 const isMobile = ref(false)
-const isMidWidth = ref(false)
-const isCompact = computed(() => isMobile.value || isMidWidth.value)
+const isCompact = computed(() => isMobile.value)
 let isTransitioning = false
 const DESKTOP_TRANSITION_MS = 600
+const router = useRouter()
+const route = useRoute()
 
 const updateViewport = () => {
   const width = window.innerWidth
   isMobile.value = width <= 1024
-  isMidWidth.value = width > 1024 && width <= 1500
 }
 
 const setSignUp = () => {
@@ -66,11 +67,13 @@ const setSignIn = () => {
 const switchToSignUp = () => {
   if (isCompact.value) {
     setSignUp()
+    router.replace({ path: '/auth', query: { mode: 'signup' } })
     return
   }
   if (isTransitioning) return
   isTransitioning = true
   setSignUp()
+  router.replace({ path: '/auth', query: { mode: 'signup' } })
   setTimeout(() => {
     isTransitioning = false
   }, DESKTOP_TRANSITION_MS)
@@ -79,11 +82,13 @@ const switchToSignUp = () => {
 const switchToSignIn = () => {
   if (isCompact.value) {
     setSignIn()
+    router.replace({ path: '/auth' })
     return
   }
   if (isTransitioning) return
   isTransitioning = true
   setSignIn()
+  router.replace({ path: '/auth' })
   setTimeout(() => {
     isTransitioning = false
   }, DESKTOP_TRANSITION_MS)
@@ -91,13 +96,12 @@ const switchToSignIn = () => {
 
 const containerClasses = computed(() => ({
   'right-panel-active': !isCompact.value && isSignUpMode.value,
-  'is-mobile': isCompact.value,
+  'is-mobile': isMobile.value,
   'mobile-signup-active': isCompact.value && isSignUpMode.value
 }))
 
 onMounted(() => {
-  const params = new URLSearchParams(window.location.search)
-  if (params.get('mode') === 'signup') {
+  if (route.query.mode === 'signup') {
     setSignUp()
   }
   updateViewport()
@@ -325,7 +329,7 @@ button.ghost:hover {
 
 .auth-shell.is-mobile {
   width: 100%;
-  max-width: 480px;
+  max-width: 560px;
   min-height: 100vh;
   padding: 0;
   background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
@@ -341,7 +345,7 @@ button.ghost:hover {
   opacity: 1 !important;
   z-index: auto;
   pointer-events: auto;
-  padding: 1.75rem 1.5rem 2.25rem;
+  padding: 2rem 1.5rem 2.5rem;
   background: rgba(255, 255, 255, 0.92);
   border-radius: 1.25rem;
   box-shadow: 0 24px 48px -24px rgba(17, 24, 39, 0.4);
@@ -378,7 +382,7 @@ button.ghost:hover {
 .auth-shell.is-mobile .mobile-toggle {
   display: flex;
   gap: 0.75rem;
-  padding: 1.25rem 1.5rem 0;
+  padding: 1.5rem 1.5rem 0;
 }
 
 @media (max-width: 1024px) {
@@ -387,7 +391,7 @@ button.ghost:hover {
   }
 }
 
-@media (min-width: 1025px) and (max-width: 1500px) {
+@media (min-width: 1201px) and (max-width: 1500px) {
   .auth-shell:not(.is-mobile) {
     --auth-shell-width: clamp(820px, 70vw, 980px);
     min-height: calc(var(--auth-shell-width) * 1.05);

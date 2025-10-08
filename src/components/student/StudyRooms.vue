@@ -24,8 +24,8 @@
           :key="room.id"
           class="room-card"
         >
-          <div class="room-status" :class="getStatusClass(room.status)">
-            {{ getStatusLabel(room.status) }}
+          <div class="room-status" :class="getStatusClass(room)">
+            {{ getStatusLabel(room) }}
           </div>
           <h3 class="room-title">{{ room.name }}</h3>
           <div class="room-capacity">
@@ -47,7 +47,7 @@
               :disabled="room.primaryDisabled"
               @click="handlePrimaryAction(room)"
             >
-              {{ getPrimaryLabel(room) }}
+              Join Chat
             </AppButton>
           </div>
         </div>
@@ -62,34 +62,28 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
-import { onMounted, reactive, computed, ref } from 'vue';
-import AppButton from '../common/AppButton.vue';
-import AppContentHeader from '../common/AppContentHeader.vue';
-import AppLoading from '../common/AppLoading.vue';
-import AppTabs from '../common/AppTabs.vue';
-import StudyRoomChatModal from './modals/StudyRoomChatModal.vue';
-import getRooms from './api/GetRooms';
-
-// import StudyRoomChatModal from './modals/StudyRoomChatModal.vue';
-
-// Local UI and student state replacing stores
-const ui = reactive({
-import { studentRooms } from '../../data/studentRooms';
-import type { StudentRoom, StudentStatus } from '../../types/student';
+import { computed, reactive, ref } from 'vue'
+import AppTabs from '../common/AppTabs.vue'
+import AppButton from '../common/AppButton.vue'
+import AppContentHeader from '../common/AppContentHeader.vue'
+import AppLoading from '../common/AppLoading.vue'
+import StudyRoomChatModal from './modals/StudyRoomChatModal.vue'
+import { studentRooms } from '../../data/studentRooms'
+import { studentPreferenceFilters } from '../../data/studentPreferences'
+import type { StudentRoom } from '../../types/student'
 
 interface ChatMessage {
-  author: string;
-  text: string;
-  time: string;
+  author: string
+  text: string
+  time: string
 }
 
 interface ChatModalState {
-  id: number;
-  name: string;
-  participants: string[];
-  messages: ChatMessage[];
+  id: number
+  name: string
+  participants: string[]
+  messages: ChatMessage[]
 }
 
 type StudyRoomCategory =
@@ -98,49 +92,51 @@ type StudyRoomCategory =
   | 'systems'
   | 'web-mobile'
   | 'ict-research'
-  | 'specialized';
+  | 'specialized'
 
-type StudyRoomFilter = 'all' | StudentStatus | StudyRoomCategory;
+type StudyRoomFilter = 'all' | StudyRoomCategory
 
 interface TabItem {
-  value: string;
-  label: string;
-  icon?: string;
-  badge?: string | number;
+  value: string
+  label: string
+  icon?: string
+  badge?: string | number
 }
 
 interface UiState {
-  loading: boolean;
-  notify: (msg: string, type?: string) => void;
+  loading: boolean
+  notify: (msg: string, type?: string) => void
   modals: {
-    studyRoomChat: ChatModalState | null;
-  };
+    studyRoomChat: ChatModalState | null
+  }
 }
 
 const ui = reactive<UiState>({
   loading: false,
   notify: (msg, type) => console.log(type ? `${type}: ${msg}` : msg),
   modals: {
-    studyRoomChat: null,
-  },
-});
+    studyRoomChat: null
+  }
+})
 
 const student = reactive({
-  allRooms: studentRooms.map((room) => ({ ...room })),
-});
+  allRooms: studentRooms.map((room) => ({
+    ...room,
+    primaryAction: 'Join Chat',
+    primaryDisabled: false
+  }))
+})
 
-const activeFilter = ref<StudyRoomFilter>('all');
+const activeFilter = ref<StudyRoomFilter>('all')
 
-const filterTabs = [
+const filterTabs: TabItem[] = [
   { value: 'all', label: 'All Rooms', icon: 'fas fa-layer-group' },
-  { value: 'available', label: 'Available', icon: 'fas fa-door-open' },
-  { value: 'programming', label: 'Programming', icon: 'fas fa-code' },
-  { value: 'databases', label: 'Databases', icon: 'fas fa-database' },
-  { value: 'systems', label: 'Systems', icon: 'fas fa-network-wired' },
-  { value: 'web-mobile', label: 'Web & Mobile', icon: 'fas fa-globe' },
-  { value: 'ict-research', label: 'ICT & Research', icon: 'fas fa-chart-line' },
-  { value: 'specialized', label: 'Specialized', icon: 'fas fa-brain' },
-] as TabItem[]
+  ...studentPreferenceFilters.map((filter) => ({
+    value: filter.value,
+    label: filter.label,
+    icon: filter.icon
+  }))
+]
 
 const categoryKeywords: Record<StudyRoomCategory, string[]> = {
   programming: ['program', 'algorithm', 'software', 'code'],
@@ -148,96 +144,68 @@ const categoryKeywords: Record<StudyRoomCategory, string[]> = {
   systems: ['system', 'network', 'unix', 'assembly'],
   'web-mobile': ['web', 'mobile'],
   'ict-research': ['ict', 'project', 'research'],
-  specialized: ['artificial', 'ai', 'compiler', 'graphics', 'retrieval'],
-};
+  specialized: ['artificial', 'ai', 'compiler', 'graphics', 'retrieval']
+}
+
+const preferenceLabelByCategory = studentPreferenceFilters.reduce<Record<string, string>>(
+  (acc, filter) => {
+    acc[filter.value] = filter.label
+    return acc
+  },
+  {}
+)
 
 const filteredRooms = computed<StudentRoom[]>(() => {
   if (activeFilter.value === 'all') {
-    return student.allRooms;
+    return student.allRooms
   }
 
-  if (['available', 'occupied', 'full'].includes(activeFilter.value)) {
-    return student.allRooms.filter((room) => room.status === activeFilter.value);
-  }
-
-  const keywords = categoryKeywords[activeFilter.value as StudyRoomCategory];
+  const keywords = categoryKeywords[activeFilter.value]
   if (!keywords) {
-    return student.allRooms;
+    return student.allRooms
   }
 
-  return student.allRooms.filter((room) =>
-    room.features.some((feature) => {
-      const normalized = feature.toLowerCase();
-      return keywords.some((keyword) => normalized.includes(keyword));
-    })
-  );
-});
+  return student.allRooms.filter((room) => {
+    const normalizedFeatures = room.features.map((feature) => feature.toLowerCase())
+    return keywords.some((keyword) =>
+      normalizedFeatures.some((feature) => feature.includes(keyword))
+    )
+  })
+})
 
-const getStatusClass = (status: StudentStatus): string => {
-  switch (status) {
-    case 'available':
-      return 'status-available';
-    case 'occupied':
-      return 'status-occupied';
-    case 'full':
-      return 'status-full';
-    default:
-      return '';
+const determineRoomCategory = (room: StudentRoom): StudyRoomCategory | 'general' => {
+  const normalizedFeatures = room.features.map((feature) => feature.toLowerCase())
+  for (const [category, keywords] of Object.entries(categoryKeywords)) {
+    if (
+      keywords.some((keyword) =>
+        normalizedFeatures.some((feature) => feature.includes(keyword))
+      )
+    ) {
+      return category as StudyRoomCategory
+    }
   }
-};
+  return 'general'
+}
 
-const getStatusLabel = (status: StudentStatus): string => {
-  switch (status) {
-    case 'available':
-      return 'Available';
-    case 'occupied':
-      return 'Occupied';
-    case 'full':
-      return 'Fully Booked';
-    default:
-      return status;
+const getStatusLabel = (room: StudentRoom): string => {
+  const category = determineRoomCategory(room)
+  if (category === 'general') {
+    return 'General Study Room'
   }
-};
+  return preferenceLabelByCategory[category] || 'General Study Room'
+}
 
-const getPrimaryLabel = (room: StudentRoom): string => {
-  const action = room.primaryAction.toLowerCase();
-  if (action === 'join chat') {
-    return 'Join Chat';
+const getStatusClass = (room: StudentRoom): string => {
+  const category = determineRoomCategory(room)
+  if (category === 'general') {
+    return 'status-general'
   }
-  if (action === 'join room') {
-    return 'Join Room';
-  }
-  return room.primaryAction;
-};
-
-onMounted(async() => { 
-  // loadStudyGroups(); 
-  var res=await getRooms();
-  console.log("rooms data", res.data);
-});
+  return `status-${category}`
+}
 
 const handlePrimaryAction = (room: StudentRoom): void => {
-  if (room.primaryDisabled) {
-    ui.notify(`Cannot ${room.primaryAction.toLowerCase()} - room is ${room.status}`);
-    return;
-  }
-
-  const intent = room.primaryAction.toLowerCase();
-  if (intent.includes('chat')) {
-    openChat(room);
-    return;
-  }
-  if (intent.includes('room')) {
-    ui.notify(`Joining ${room.name}...`, 'success');
-    return;
-  }
-
-  ui.notify(`${room.primaryAction}: ${room.name}`);
-};
-
-const loadStudyGroups = (): void => {
-  ui.loading = true;
-};
+  openChat(room)
+}
 
 const openChat = (group: StudentRoom & { topic?: string; participants?: string[] }): void => {
   ui.modals.studyRoomChat = {
@@ -245,18 +213,26 @@ const openChat = (group: StudentRoom & { topic?: string; participants?: string[]
     name: group.name,
     participants: group.participants || ['John Doe', 'You', 'Sarah Smith', 'Alex'],
     messages: [
-      { author: 'John Doe', text: 'Hey everyone! What topic should we focus on today?', time: '10:05 AM' },
-      { author: 'You', text: `Let's discuss ${group.topic || 'our current assignment'}.`, time: '10:06 AM' },
-      { author: 'Sarah Smith', text: 'Sounds good!', time: '10:07 AM' },
-    ],
-  };
-};
+      {
+        author: 'John Doe',
+        text: 'Hey everyone! What topic should we focus on today?',
+        time: '10:05 AM'
+      },
+      {
+        author: 'You',
+        text: `Let's discuss ${group.topic || 'our current assignment'}.`,
+        time: '10:06 AM'
+      },
+      { author: 'Sarah Smith', text: 'Sounds good!', time: '10:07 AM' }
+    ]
+  }
+}
 
 const handleChatMessage = (message: { text: string }): void => {
-  if (!ui.modals.studyRoomChat) return;
-  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  ui.modals.studyRoomChat.messages.push({ author: 'You', text: message.text, time: now });
-};
+  if (!ui.modals.studyRoomChat) return
+  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  ui.modals.studyRoomChat.messages.push({ author: 'You', text: message.text, time: now })
+}
 </script>
 
 <style scoped>
@@ -347,17 +323,37 @@ const handleChatMessage = (message: { text: string }): void => {
   text-transform: uppercase;
 }
 
-.status-available {
-  background: linear-gradient(135deg, #10b981, #059669);
+.status-general {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
   color: #fff;
 }
 
-.status-occupied {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+.status-programming {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
 }
 
-.status-full {
+.status-databases {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #fff;
+}
+
+.status-systems {
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
+  color: #fff;
+}
+
+.status-web-mobile {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+}
+
+.status-ict-research {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #fff;
+}
+
+.status-specialized {
   background: linear-gradient(135deg, #ef4444, #dc2626);
   color: #fff;
 }

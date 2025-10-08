@@ -21,42 +21,45 @@
       <AppTabs v-model="activeFilter" :tabs="filterTabs" />
 
       <div class="resources-grid">
-        <AppCard
+        <div
           v-for="resource in filteredResources"
           :key="resource.id"
           class="resource-card"
-          variant="elevated"
+          :data-type="resource.type"
         >
-          <template #header>
-            <div class="resource-header">
-              <div class="resource-icon">
-                <i :class="getResourceIcon(resource.type)"></i>
-              </div>
-              <div class="resource-title">{{ resource.title }}</div>
+          <div class="resource-header">
+            <div class="resource-icon">
+              <i :class="getResourceIcon(resource.type)"></i>
             </div>
-          </template>
-
-          <div class="resource-body">
-            <div class="resource-meta">
-              <span><i class="fas fa-book"></i> {{ resource.course }}</span>
-              <span><i :class="resource.metaIcon"></i> {{ resource.metaText }}</span>
-            </div>
-            <p class="resource-description">
-              {{ resource.description }}
-            </p>
+            <div class="resource-title">{{ resource.title }}</div>
           </div>
-
-          <template #footer>
-            <div class="resource-actions">
-              <AppButton size="small" variant="secondary" @click="openPreview(resource)">
-                Preview
-              </AppButton>
-              <AppButton size="small" @click="handleResourceAction(resource)">
-                {{ resource.actionLabel }}
-              </AppButton>
-            </div>
-          </template>
-        </AppCard>
+          <div class="resource-meta">
+            <span>
+              <i class="fas fa-book"></i>
+              {{ resource.course }}
+            </span>
+            <span v-if="resource.updatedAt">
+              <i class="far fa-calendar-alt"></i>
+              {{ formatUpdatedDate(resource.updatedAt) }}
+            </span>
+            <span v-else>
+              <i :class="resource.metaIcon"></i>
+              {{ resource.metaText }}
+            </span>
+          </div>
+          <div class="resource-actions">
+            <AppButton
+              size="small"
+              variant="secondary"
+              @click="openPreview(resource)"
+            >
+              Preview
+            </AppButton>
+            <AppButton size="small" @click="handleResourceAction(resource)">
+              {{ resource.actionLabel }}
+            </AppButton>
+          </div>
+        </div>
       </div>
 
       <ResourcePreviewModal
@@ -170,6 +173,16 @@ const filteredResources = computed<StudentResource[]>(() => {
   });
 });
 
+const updatedFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+const formatUpdatedDate = (isoDate: string): string => {
+  return updatedFormatter.format(new Date(isoDate));
+};
+
 onMounted(() => {
   loadResources();
 });
@@ -267,106 +280,70 @@ const getTypeLabel = (value: ResourceType): string => {
   background: rgba(17, 24, 39, 0.08);
 }
 
-.resources :deep(.tab-trigger.active) {
-  background: linear-gradient(135deg, #111827, #1f2937);
-  color: #fff;
-  box-shadow: 0 10px 30px -12px rgba(17, 24, 39, 0.45);
-}
-
 .resources-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
 }
 
-.resource-card :deep(.card-header) {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
 .resource-card {
   background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
   border: 1px solid rgba(229, 231, 235, 0.5);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 18px 30px -22px rgba(17, 24, 39, 0.35);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  padding: 1.25rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 18px 32px -18px rgba(17, 24, 39, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .resource-card:hover {
-  transform: translateY(-6px);
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 28px 50px -20px rgba(17, 24, 39, 0.45);
+  transform: translateY(-4px);
+  box-shadow: 0 24px 46px -20px rgba(17, 24, 39, 0.35);
 }
 
 .resource-header {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 15px;
+  gap: 1rem;
 }
 
 .resource-icon {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #111827, #374151);
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
+  background: linear-gradient(135deg, #111827, #374151);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 1.2rem;
+  color: #fff;
 }
 
 .resource-title {
   font-size: 1.1rem;
-  font-weight: bold;
+  font-weight: 600;
   color: #111827;
-  margin-bottom: 0;
-}
-
-.resource-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 0.9rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .resource-meta {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-bottom: 0.5rem;
-}
-
-.resource-meta span {
-  display: flex;
-  align-items: center;
+  gap: 0.55rem;
   color: #6b7280;
   font-size: 0.9rem;
 }
 
-.resource-meta i {
-  width: 16px;
-}
-
-.resource-description {
-  color: #4b5563;
-  line-height: 1.6;
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.resource-card :deep(.card-footer) {
-  border-top: none;
-  padding-top: 0;
+.resource-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .resource-actions {
   display: flex;
-  gap: 10px;
+  justify-content: flex-end;
+  gap: 0.75rem;
 }
 
 .resources :deep(.tab-list) {
@@ -459,10 +436,6 @@ const getTypeLabel = (value: ResourceType): string => {
 
   .resource-meta {
     font-size: 0.85rem;
-  }
-
-  .resource-description {
-    font-size: 0.9rem;
   }
 
   .resource-actions {
