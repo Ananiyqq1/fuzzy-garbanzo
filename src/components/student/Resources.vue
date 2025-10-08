@@ -13,9 +13,9 @@
           title="Learning Resources"
           subtitle="Access study materials, lecture notes, and other resources"
         />
-        <AppButton class="upload-button" size="small" icon="fas fa-upload" @click="openUploadModal">
+        <!-- <AppButton class="upload-button" size="small" icon="fas fa-upload" @click="openUploadModal">
           Upload Resource
-        </AppButton>
+        </AppButton> -->
       </div>
 
       <AppTabs v-model="activeFilter" :tabs="filterTabs" />
@@ -97,6 +97,21 @@ interface UiState {
   };
 }
 
+type PreferenceCategory =
+  | 'all'
+  | 'programming'
+  | 'databases'
+  | 'systems'
+  | 'web-mobile'
+  | 'ict-research'
+  | 'specialized';
+
+interface TabItem {
+  value: PreferenceCategory;
+  label: string;
+  icon?: string;
+}
+
 interface StudentState {
   resources: StudentResource[];
 }
@@ -118,22 +133,41 @@ const student: StudentState = reactive({
   resources: studentResources.map((resource) => ({ ...resource })),
 });
 
-const activeFilter = ref<string>('all');
+const activeFilter = ref<PreferenceCategory>('all');
 
-const filterTabs = [
+const filterTabs: TabItem[] = [
   { value: 'all', label: 'All Resources', icon: 'fas fa-layer-group' },
-  { value: 'lectures', label: 'Lecture Notes', icon: 'fas fa-file-pdf' },
-  { value: 'books', label: 'Books', icon: 'fas fa-book' },
-  { value: 'papers', label: 'Research Papers', icon: 'fas fa-file-alt' },
-] as any;
+  { value: 'programming', label: 'Programming', icon: 'fas fa-code' },
+  { value: 'databases', label: 'Databases', icon: 'fas fa-database' },
+  { value: 'systems', label: 'Systems', icon: 'fas fa-network-wired' },
+  { value: 'web-mobile', label: 'Web & Mobile', icon: 'fas fa-globe' },
+  { value: 'ict-research', label: 'ICT & Research', icon: 'fas fa-chart-line' },
+  { value: 'specialized', label: 'Specialized', icon: 'fas fa-brain' },
+];
+
+const categoryKeywords: Record<Exclude<PreferenceCategory, 'all'>, string[]> = {
+  programming: ['program', 'algorithm', 'software', 'code'],
+  databases: ['database', 'data', 'sql'],
+  systems: ['system', 'network', 'unix', 'assembly'],
+  'web-mobile': ['web', 'mobile'],
+  'ict-research': ['ict', 'project', 'research'],
+  specialized: ['artificial', 'ai', 'compiler', 'graphics', 'retrieval'],
+};
 
 const filteredResources = computed<StudentResource[]>(() => {
   if (activeFilter.value === 'all') {
     return student.resources;
   }
-  return student.resources.filter((resource) =>
-    resource.type === activeFilter.value,
-  );
+
+  const keywords = categoryKeywords[activeFilter.value];
+  if (!keywords) {
+    return student.resources;
+  }
+
+  return student.resources.filter((resource) => {
+    const haystack = `${resource.title} ${resource.description} ${resource.course}`.toLowerCase();
+    return keywords.some((keyword) => haystack.includes(keyword));
+  });
 });
 
 onMounted(() => {
@@ -144,7 +178,7 @@ const loadResources = (): void => {
   ui.loading = true;
 };
 
-const setActiveFilter = (filter: string): void => {
+const setActiveFilter = (filter: PreferenceCategory): void => {
   activeFilter.value = filter;
 };
 

@@ -1,21 +1,5 @@
 <template>
   <aside class="sidebar" :class="{ open: isOpen }">
-    <!-- Sidebar Header -->
-    <div class="sidebar-header">
-      <div class="sidebar-logo">
-        <div class="logo">
-          <i class="fas fa-graduation-cap"></i>
-        </div>
-        <div class="brand-info">
-          <h2>HiLCoE Peer</h2>
-          <p>Navigation</p>
-        </div>
-      </div>
-      <button v-if="showCloseButton" class="close-btn" @click="$emit('close')">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-
     <!-- Navigation Menu -->
     <nav class="sidebar-nav">
       <ul class="nav-list">
@@ -62,30 +46,6 @@
         </li>
       </ul>
     </nav>
-
-    <!-- Sidebar Footer -->
-    <div v-if="showFooter" class="sidebar-footer">
-      <div class="user-info">
-        <img 
-          :src="userAvatar || '/default-avatar.png'" 
-          :alt="userName || 'User'"
-          class="user-avatar"
-        />
-        <div class="user-details">
-          <span class="user-name">{{ userName || 'User' }}</span>
-          <span class="user-role">{{ userRole || 'Student' }}</span>
-        </div>
-      </div>
-      
-      <div class="footer-actions">
-        <button class="footer-btn" @click="$emit('settings')" title="Settings">
-          <i class="fas fa-cog"></i>
-        </button>
-        <button class="footer-btn" @click="$emit('logout')" title="Logout">
-          <i class="fas fa-sign-out-alt"></i>
-        </button>
-      </div>
-    </div>
   </aside>
 
   <!-- Mobile Overlay -->
@@ -97,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -111,29 +71,9 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  showCloseButton: {
-    type: Boolean,
-    default: false
-  },
   showOverlay: {
     type: Boolean,
     default: true
-  },
-  showFooter: {
-    type: Boolean,
-    default: true
-  },
-  userName: {
-    type: String,
-    default: ''
-  },
-  userRole: {
-    type: String,
-    default: ''
-  },
-  userAvatar: {
-    type: String,
-    default: ''
   }
 })
 
@@ -161,12 +101,12 @@ const handleNavClick = (item) => {
     $emit(item.action)
   }
   // Close sidebar on mobile after navigation
-  if (window.innerWidth <= 1024) {
+  if (window.innerWidth <= 768) {
     $emit('close')
   }
 }
 
-defineEmits(['close', 'settings', 'logout'])
+defineEmits(['close', 'logout'])
 </script>
 
 <style scoped>
@@ -185,66 +125,6 @@ defineEmits(['close', 'settings', 'logout'])
   gap: var(--spacing-xl);
 }
 
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: var(--spacing-lg);
-  border-bottom: 1px solid var(--border-gray);
-}
-
-.sidebar-logo {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.sidebar-logo .logo {
-  width: 2rem;
-  height: 2rem;
-  background: var(--gradient-primary);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--white);
-  font-weight: bold;
-  font-size: var(--font-size-base);
-}
-
-.sidebar-logo h2 {
-  font-size: var(--font-size-lg);
-  font-weight: bold;
-  color: var(--primary-dark);
-  margin: 0;
-  line-height: 1.2;
-}
-
-.sidebar-logo p {
-  font-size: var(--font-size-xs);
-  color: var(--light-gray);
-  margin: 0;
-}
-
-.close-btn {
-  display: none;
-  padding: var(--spacing-sm);
-  background: var(--bg-gray);
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.close-btn:hover {
-  background: var(--border-gray);
-}
-
-.close-btn i {
-  color: var(--secondary-gray);
-  font-size: var(--font-size-sm);
-}
-
 .sidebar-nav {
   flex: 1;
 }
@@ -253,7 +133,7 @@ defineEmits(['close', 'settings', 'logout'])
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: 0.5rem;
   margin: 0;
   padding: 0;
 }
@@ -337,18 +217,19 @@ defineEmits(['close', 'settings', 'logout'])
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
 }
-
+.nav-link {
+  padding: var(--spacing-md);
+}
+  
 .nav-sublink {
-  padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-sm) 3rem;
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 2.5rem;
   font-size: var(--font-size-xs);
   color: var(--light-gray);
 }
 
 .nav-sublink:hover {
   background: var(--bg-gray);
-  color: var(--secondary-gray);
 }
 
 .nav-sublink.active {
@@ -356,121 +237,37 @@ defineEmits(['close', 'settings', 'logout'])
   color: var(--white);
 }
 
-.sidebar-footer {
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--border-gray);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: var(--light-bg);
-  border-radius: var(--radius-lg);
-}
-
-.user-avatar {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-full);
-  object-fit: cover;
-  border: 2px solid var(--white);
-}
-
-.user-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.user-name {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--primary-dark);
-  line-height: 1.2;
-}
-
-.user-role {
-  font-size: var(--font-size-xs);
-  color: var(--light-gray);
-}
-
-.footer-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-}
-
-.footer-btn {
-  flex: 1;
-  padding: var(--spacing-md);
-  background: var(--bg-gray);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.footer-btn:hover {
-  background: var(--border-gray);
-  transform: translateY(-1px);
-}
-
-.footer-btn i {
-  color: var(--secondary-gray);
-  font-size: var(--font-size-base);
-}
-
 .sidebar-overlay {
   display: none;
 }
 
 /* Responsive Design */
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
   .sidebar {
     position: fixed;
-    top: 0;
-    left: -280px;
-    height: 100vh;
+    top: 5rem;
+    left: -100vw;
+    height: calc(100vh - 5rem);
     z-index: 100;
     transition: left var(--transition-normal);
     border-radius: 0;
     padding: var(--spacing-xl);
+    width: min(80vw, 320px);
   }
   
   .sidebar.open {
     left: 0;
   }
   
-  .close-btn {
-    display: flex;
-  }
-  
   .sidebar-overlay {
     position: fixed;
-    top: 0;
+    top: 5rem;
     left: 0;
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 99;
     display: block;
-  }
-}
-
-@media (max-width: 768px) {
-  .sidebar {
-    padding: var(--spacing-lg);
-  }
-  
-  .sidebar-header {
-    padding-bottom: var(--spacing-md);
   }
   
   .nav-link {

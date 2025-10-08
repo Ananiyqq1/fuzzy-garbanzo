@@ -1,7 +1,7 @@
 <template>
   <div class="auth-page">
-    <div class="auth-shell" :class="containerClasses">
-      <div class="mobile-toggle" v-if="isMobile">
+    <AppCard class="auth-shell" :class="containerClasses" variant="elevated" :clickable="false">
+      <div class="mobile-toggle" v-if="isCompact">
         <button type="button" class="toggle-btn" :class="{ active: !isSignUpMode }" @click="switchToSignIn">
           Sign In
         </button>
@@ -32,7 +32,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </AppCard>
   </div>
 </template>
 
@@ -40,14 +40,19 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import SignIn from '../../components/auth/SignIn.vue'
 import SignUp from '../../components/auth/SignUp.vue'
+import AppCard from '../../components/common/AppCard.vue'
 
 const isSignUpMode = ref(false)
 const isMobile = ref(false)
+const isMidWidth = ref(false)
+const isCompact = computed(() => isMobile.value || isMidWidth.value)
 let isTransitioning = false
 const DESKTOP_TRANSITION_MS = 600
 
 const updateViewport = () => {
-  isMobile.value = window.innerWidth <= 1024
+  const width = window.innerWidth
+  isMobile.value = width <= 1024
+  isMidWidth.value = width > 1024 && width <= 1500
 }
 
 const setSignUp = () => {
@@ -59,7 +64,7 @@ const setSignIn = () => {
 }
 
 const switchToSignUp = () => {
-  if (isMobile.value) {
+  if (isCompact.value) {
     setSignUp()
     return
   }
@@ -72,7 +77,7 @@ const switchToSignUp = () => {
 }
 
 const switchToSignIn = () => {
-  if (isMobile.value) {
+  if (isCompact.value) {
     setSignIn()
     return
   }
@@ -85,9 +90,9 @@ const switchToSignIn = () => {
 }
 
 const containerClasses = computed(() => ({
-  'right-panel-active': !isMobile.value && isSignUpMode.value,
-  'is-mobile': isMobile.value,
-  'mobile-signup-active': isMobile.value && isSignUpMode.value
+  'right-panel-active': !isCompact.value && isSignUpMode.value,
+  'is-mobile': isCompact.value,
+  'mobile-signup-active': isCompact.value && isSignUpMode.value
 }))
 
 onMounted(() => {
@@ -118,19 +123,27 @@ onUnmounted(() => {
   justify-content: center;
   background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
   padding: 2rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.auth-page::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .auth-shell {
+  --auth-shell-width: clamp(768px, 60vw, 920px);
   position: relative;
-  width: 768px;
+  width: var(--auth-shell-width);
   max-width: 100%;
   min-height: 580px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(20px);
-  border-radius: 1.5rem;
-  border: 1px solid rgba(229, 231, 235, 0.5);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+  padding: 0;
   overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
 }
 
 .form-container {
@@ -169,6 +182,19 @@ onUnmounted(() => {
   transform: translateX(100%);
   opacity: 1;
   z-index: 5;
+}
+
+.form-container :deep(.auth-form) {
+  max-height: 100%;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.form-container :deep(.auth-form::-webkit-scrollbar) {
+  width: 0;
+  height: 0;
 }
 
 .overlay-container {
@@ -315,11 +341,22 @@ button.ghost:hover {
   opacity: 1 !important;
   z-index: auto;
   pointer-events: auto;
-  padding: 2.25rem 1.75rem;
+  padding: 1.75rem 1.5rem 2.25rem;
   background: rgba(255, 255, 255, 0.92);
   border-radius: 1.25rem;
   box-shadow: 0 24px 48px -24px rgba(17, 24, 39, 0.4);
   margin-top: 1.5rem;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  max-height: min(90vh, 780px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.auth-shell.is-mobile .form-container::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .auth-shell.is-mobile .sign-up-container {
@@ -347,6 +384,25 @@ button.ghost:hover {
 @media (max-width: 1024px) {
   .auth-page {
     padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1500px) {
+  .auth-shell:not(.is-mobile) {
+    --auth-shell-width: clamp(820px, 70vw, 980px);
+    min-height: calc(var(--auth-shell-width) * 1.05);
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  .auth-shell:not(.is-mobile) .form-container {
+    padding: 3rem 2.75rem;
+  }
+
+  .auth-shell:not(.is-mobile) .sign-up-container :deep(form) {
+    max-height: calc(var(--auth-shell-width) * 1.05 - 4rem);
+    overflow-y: auto;
   }
 }
 

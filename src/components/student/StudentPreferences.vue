@@ -77,6 +77,7 @@ import {
   studentPreferenceFilters,
   studentPreferenceSelectionLimits,
 } from '../../data/studentPreferences.js';
+import { useSignUpData } from '../../composables/useSignUpData';
 
 const router = useRouter();
 const selectedCourses = ref([]);
@@ -88,6 +89,8 @@ const filters = studentPreferenceFilters;
 
 const selectedCount = computed(() => selectedCourses.value.length);
 const progressPercentage = computed(() => (selectedCount.value / maxSelections) * 100);
+
+const { signUpData } = useSignUpData();
 
 const topicCards = computed(() => {
   const course = studentPreferenceCourses.find(
@@ -134,7 +137,20 @@ function continueOtp() {
     return;
   }
   
-  console.log('Selected courses:', selectedCourses.value);
+  const signUpDetails = {
+    name: signUpData.name,
+    username: signUpData.username,
+    instituteEmail: signUpData.instituteEmail,
+    personalEmail: signUpData.personalEmail,
+    bio: signUpData.bio,
+  };
+
+  const courseSelections = [...selectedCourses.value];
+
+  console.log('Onboarding submission:', {
+    signUp: signUpDetails,
+    selectedCourses: courseSelections,
+  });
   alert(`Success! ${selectedCount.value} courses selected. Redirecting to otp verification...`);
   router.push('/otp');
 }

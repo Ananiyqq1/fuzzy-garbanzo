@@ -114,7 +114,7 @@ async function submit() {
     if (selectedRole.value === 'admin') {
       router.push('/admin/dashboard')
     } else {
-      router.push('/student/dashboard')
+      router.push('/dashboard')
     }
   } catch (error) {
     console.error('Sign in error:', error)

@@ -23,6 +23,7 @@ export interface StudentResource {
   metaText: string;
   description: string;
   actionLabel: string;
+  updatedAt?: string;
 }
 
 export interface SessionMaterial {

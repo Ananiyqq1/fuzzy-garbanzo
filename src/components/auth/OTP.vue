@@ -91,7 +91,7 @@ const verifyOtp = async () => {
     if (role.value === 'admin') {
       router.push('/admin/dashboard')
     } else {
-      router.push('/student/dashboard')
+      router.push('/dashboard')
     }
   } catch (error) {
     console.error('OTP verification error:', error)

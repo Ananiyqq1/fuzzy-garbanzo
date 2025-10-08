@@ -5,32 +5,28 @@
       subtitle="Create, edit, and manage courses and learning materials"
     >
       <template #actions>
-        <AppButton icon="fas fa-plus" @click="openCourseModal">Add New Course</AppButton>
       </template>
     </AppContentHeader>
 
     <AppFilterBar>
-      <AppSelect v-model="filters.category" label="Category">
-        <option value="all">All Categories</option>
-        <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
-      </AppSelect>
-      <AppSelect v-model="filters.status" label="Status">
-        <option value="all">All Status</option>
-        <option v-for="status in statuses" :key="status" :value="status">{{ status }}</option>
-      </AppSelect>
-      <AppInput
-        v-model="filters.search"
-        placeholder="Search courses..."
-        left-icon="fas fa-search"
-      />
+      <div class="filter-row">
+        <AppSelect v-model="filters.category" label="Category">
+          <option value="all">All Categories</option>
+          <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
+        </AppSelect>
+        <AppSelect v-model="filters.status" label="Status">
+          <option value="all">All Status</option>
+          <option v-for="status in statuses" :key="status" :value="status">{{ status }}</option>
+        </AppSelect>
+        <AppInput
+          v-model="filters.search"
+          placeholder="Search courses..."
+          left-icon="fas fa-search"
+          label="Search"
+          class="filter-search"
+        />
+      </div>
       <template #actions>
-        <AppButton
-          variant="secondary"
-          icon="fas fa-download"
-          @click="exportCourses"
-        >
-          Export
-        </AppButton>
       </template>
     </AppFilterBar>
 
@@ -49,10 +45,6 @@
         <AppSelect v-model="newCourse.category" label="Category">
           <option value="">Select category</option>
           <option v-for="category in categories" :key="`form-${category}`" :value="category">{{ category }}</option>
-        </AppSelect>
-        <AppSelect v-model="newCourse.instructor" label="Instructor">
-          <option value="">Select instructor</option>
-          <option v-for="instructor in instructors" :key="instructor" :value="instructor">{{ instructor }}</option>
         </AppSelect>
         <AppTextarea
           v-model="newCourse.description"
@@ -112,11 +104,8 @@ const instructors = ['Dr. Abebe Kebede', 'Dr. Selamawit Tadesse', 'Dr. Michael B
 
 const state = reactive({
   courses: [
-    { code: 'CS201', title: 'Data Structures and Algorithms', category: 'Computer Science', instructor: 'Dr. Abebe Kebede', enrollments: 142, status: 'Active', statusLabel: 'Active' },
-    { code: 'CS202', title: 'Database Systems', category: 'Computer Science', instructor: 'Dr. Selamawit Tadesse', enrollments: 118, status: 'Active', statusLabel: 'Active' },
-    { code: 'MTH101', title: 'Calculus I', category: 'Mathematics', instructor: 'Dr. Michael Berhanu', enrollments: 205, status: 'Active', statusLabel: 'Active' },
-    { code: 'BUS301', title: 'Business Management', category: 'Business', instructor: 'Dr. Hanna Girma', enrollments: 87, status: 'Inactive', statusLabel: 'Inactive' },
-    { code: 'ENG150', title: 'Introduction to Engineering', category: 'Engineering', instructor: 'Dr. Yordanos Lemma', enrollments: 93, status: 'Draft', statusLabel: 'Draft' }
+    { code: 'CS321', title: 'Data Structures and Algorithms', category: 'Programming', instructor: 'Dr. Abebe Kebede', enrollments: 142, status: 'Active', statusLabel: 'Active' },
+    { code: 'CS341', title: 'Database Systems', category: 'Databases % Data Management', instructor: 'Dr. Selamawit Tadesse', enrollments: 118, status: 'Active', statusLabel: 'Active' },
   ],
   filters: {
     category: 'all',
@@ -139,8 +128,6 @@ const columns = [
   { key: 'code', label: 'Course Code', minWidth: '140px' },
   { key: 'title', label: 'Course Title', minWidth: '220px' },
   { key: 'category', label: 'Category', minWidth: '160px' },
-  { key: 'instructor', label: 'Instructor', minWidth: '220px' },
-  { key: 'enrollments', label: 'Enrollments', align: 'right', width: '120px' },
   { key: 'status', label: 'Status', width: '140px', align: 'center' },
   { key: 'actions', label: 'Actions', width: '140px', align: 'center' },
 ];
@@ -196,6 +183,20 @@ function exportCourses() {
 <style scoped>
 .course-management {
   padding: 2rem;
+}
+
+.filter-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-row > * {
+  flex: 1 1 220px;
+}
+
+.filter-search {
+  min-width: 260px;
 }
 
 .form-grid {

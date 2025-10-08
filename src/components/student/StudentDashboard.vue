@@ -50,42 +50,82 @@
       </div>
 
       <section class="books-section" v-if="bookRecommendations.length">
-        <div class="books-header">
-          <h2>Recommended Textbooks</h2>
-          <p>Build your library with the top course books in rotation.</p>
-        </div>
+        <AppContentHeader
+          title="Recommended Documents"
+          subtitle="Build your library with the top course books in rotation."
+        />
 
         <div class="books-grid">
-          <AppCard
+          <div
             v-for="resource in bookRecommendations"
             :key="resource.id"
-            class="book-card"
-            variant="elevated"
+            class="resource-card"
+            :data-type="resource.type"
           >
-            <template #header>
-              <div class="book-header">
-                <div class="book-icon">
-                  <i :class="resource.metaIcon"></i>
-                </div>
-                <div>
-                  <h3 class="book-title">{{ resource.title }}</h3>
-                  <p class="book-course">{{ resource.course }}</p>
-                </div>
+            <div class="resource-header">
+              <div class="resource-icon">
+                <i :class="resource.metaIcon"></i>
               </div>
-            </template>
+              <div class="resource-title">{{ resource.title }}</div>
+            </div>
+            <div class="resource-meta">
+              <span>
+                <i class="fas fa-book"></i>
+                {{ resource.course }}
+              </span>
+              <span v-if="resource.updatedAt">
+                <i class="far fa-calendar-alt"></i>
+                {{ formatUpdatedDate(resource.updatedAt) }}
+              </span>
+              <span v-else>
+                <i :class="resource.metaIcon"></i>
+                {{ resource.metaText }}
+              </span>
+            </div>
+            <div class="resource-description">
+              {{ resource.description }}
+            </div>
+            <div class="resource-actions">
+              <!-- <AppButton
+                size="small"
+                class="resource-action-button"
+                type="button"
+                @click="handleResourceAction(resource)"
+              >
+                {{ resource.actionLabel }}
+              </AppButton> -->
+            </div>
+          </div>
+        </div>
+      </section>
 
-            <!-- <p class="book-description">{{ resource.description }}</p> -->
+      <section class="contributors-section" v-if="topContributors.length">
+        <AppContentHeader
+          title="Top Peers on HiLCoE Knowledge Hub"
+          subtitle="Recognizing this week's most engaged student contributors."
+        />
 
-            <template #footer>
-              <div class="book-actions">
-                <!-- <span class="book-meta">
-                  <i :class="resource.metaIcon"></i>
-                  {{ resource.metaText }}
-                </span> -->
-                <!-- <AppButton size="small">{{ resource.actionLabel }}</AppButton> -->
-              </div>
-            </template>
-          </AppCard>
+        <div class="contributors-grid">
+          <div
+            v-for="contributor in topContributors"
+            :key="contributor.id"
+            class="contributor-card"
+          >
+            <div class="contributor-avatar">
+              <img :src="contributor.avatar" :alt="contributor.name" />
+            </div>
+            <h3 class="contributor-name">{{ contributor.name }}</h3>
+            <p class="contributor-role">{{ contributor.role }}</p>
+            <div class="contributor-score">
+              <i
+                v-for="n in 5"
+                :key="`star-${contributor.id}-${n}`"
+                :class="n <= Math.round(contributor.score) ? 'fas fa-star' : 'far fa-star'"
+              ></i>
+              <span class="score-value">{{ contributor.score.toFixed(1) }}</span>
+            </div>
+            <span class="contributor-metric">{{ contributor.totalPoints }} pts</span>
+          </div>
         </div>
       </section>
     </div>
@@ -101,6 +141,15 @@ import { studentRooms } from '../../data/studentRooms';
 import { studentResources } from '../../data/studentResources';
 import type { StudentResource, StudentRoom, StudentStatus } from '../../types/student';
 
+interface TopContributor {
+  id: number;
+  name: string;
+  role: string;
+  score: number;
+  totalPoints: number;
+  avatar: string;
+}
+
 const availableRooms = computed<StudentRoom[]>(() =>
   studentRooms.filter((room) => room.status === 'available')
 );
@@ -108,6 +157,47 @@ const availableRooms = computed<StudentRoom[]>(() =>
 const bookRecommendations = computed<StudentResource[]>(() =>
   studentResources.filter((resource) => resource.type === 'books')
 );
+
+const handleResourceAction = (resource: StudentResource): void => {
+  console.log(`${resource.actionLabel}: ${resource.title}`);
+};
+
+const topContributors: TopContributor[] = [
+  {
+    id: 1,
+    name: 'Moa Habtamu',
+    role: 'Peer Mentor',
+    score: 5,
+    totalPoints: 1320,
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80'
+  },
+  {
+    id: 2,
+    name: 'Simon Yohannes',
+    role: 'Discussion Lead',
+    score: 5,
+    totalPoints: 1245,
+    avatar: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=200&q=80'
+  },
+  {
+    id: 3,
+    name: 'Hayat Abdulrezak',
+    role: 'Resource Curator',
+    score: 5,
+    totalPoints: 1184,
+    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80'
+  }
+];
+
+const updatedFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric'
+});
+
+const formatUpdatedDate = (isoDate: string): string => {
+  return updatedFormatter.format(new Date(isoDate));
+};
 
 const getStatusClass = (status: StudentStatus): string => {
   switch (status) {
@@ -164,8 +254,9 @@ const handlePrimaryAction = (room: StudentRoom): void => {
   max-width: 1280px;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 2.5rem;
   position: relative;
+  padding: 2.5rem;
 }
 
 .rooms-grid {
@@ -307,32 +398,39 @@ const handlePrimaryAction = (room: StudentRoom): void => {
   margin-top: 2rem;
 }
 
-.books-header h2 {
-  margin: 0;
-  font-size: 1.75rem;
-  color: #111827;
-}
-
-.books-header p {
-  margin: 0;
-  color: #6b7280;
-}
-
 .books-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
 }
 
-.book-header {
+.resource-card {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  padding: 1.25rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 12px 32px -18px rgba(17, 24, 39, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.resource-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px -20px rgba(17, 24, 39, 0.35);
+}
+
+.resource-header {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.book-icon {
-  width: 48px;
-  height: 48px;
+.resource-icon {
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   background: linear-gradient(135deg, #111827, #374151);
   display: flex;
@@ -341,38 +439,128 @@ const handlePrimaryAction = (room: StudentRoom): void => {
   color: #fff;
 }
 
-.book-title {
-  margin: 0;
+.resource-title {
   font-size: 1.1rem;
   font-weight: 600;
   color: #111827;
 }
 
-.book-course {
-  margin: 0.15rem 0 0;
+.resource-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
   color: #6b7280;
   font-size: 0.9rem;
 }
 
-.book-description {
-  color: #4b5563;
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.book-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.book-meta {
+.resource-meta span {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+}
+
+.resource-description {
+  color: #4b5563;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.resource-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.resource-actions :deep(.btn) {
+  border-radius: 999px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0.6rem 1.75rem;
+}
+
+.contributors-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  margin-top: 2.5rem;
+}
+
+.contributors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.contributor-card {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  border-radius: 1.25rem;
+  padding: 1.5rem 1.25rem;
+  box-shadow: 0 18px 32px -20px rgba(17, 24, 39, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.contributor-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 42px -18px rgba(17, 24, 39, 0.4);
+}
+
+.contributor-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(17, 24, 39, 0.12);
+  box-shadow: 0 12px 24px -12px rgba(17, 24, 39, 0.35);
+}
+
+.contributor-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.contributor-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.contributor-role {
+  margin: 0;
   color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.contributor-score {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #f59e0b;
+}
+
+.contributor-score i {
+  font-size: 0.9rem;
+}
+
+.contributor-score .score-value {
+  margin-left: 0.35rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.contributor-metric {
   font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+  background: rgba(17, 24, 39, 0.08);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
 }
 
 @media (max-width: 1024px) {

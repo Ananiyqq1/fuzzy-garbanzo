@@ -1,11 +1,11 @@
 <template>
   <div class="analytics-page">
     <AppContentHeader
-      title="Platform Analytics"
-      subtitle="Track performance, engagement, and platform usage"
+      title="Admin Dashboard"
+      subtitle="Manage students, courses, and platform settings"
     >
       <template #actions>
-        <AppButton icon="fas fa-download" @click="exportReport">Export Report</AppButton>
+        <!-- <AppButton icon="fas fa-download" @click="exportReport">Export Report</AppButton> -->
       </template>
     </AppContentHeader>
 
@@ -91,8 +91,8 @@ import AppSelect from '../common/AppSelect.vue';
 const summaryCards = reactive([
   { title: 'Total Users', icon: 'fas fa-users', value: '1,248', changeText: '12.5% from last month', changeClass: 'change-positive', changeIcon: 'fas fa-arrow-up' },
   { title: 'Active Courses', icon: 'fas fa-book', value: '356', changeText: '8.3% from last month', changeClass: 'change-positive', changeIcon: 'fas fa-arrow-up' },
-  { title: 'Avg. Completion Rate', icon: 'fas fa-chart-line', value: '78%', changeText: '5.2% from last month', changeClass: 'change-positive', changeIcon: 'fas fa-arrow-up' },
-  { title: 'Weekly Engagement', icon: 'fas fa-clock', value: '4.2h', changeText: '1.3% from last week', changeClass: 'change-negative', changeIcon: 'fas fa-arrow-down' }
+  // { title: 'Avg. Completion Rate', icon: 'fas fa-chart-line', value: '78%', changeText: '5.2% from last month', changeClass: 'change-positive', changeIcon: 'fas fa-arrow-up' },
+  // { title: 'Weekly Engagement', icon: 'fas fa-clock', value: '4.2h', changeText: '1.3% from last week', changeClass: 'change-negative', changeIcon: 'fas fa-arrow-down' }
 ]);
 
 const charts = reactive([
@@ -107,19 +107,19 @@ const filters = reactive({ metric: 'All Metrics', range: 'Last 30 days' });
 
 const courseColumns = [
   { key: 'course', label: 'Course', minWidth: '220px' },
-  { key: 'enrollments', label: 'Enrollments', align: 'right', width: '140px' },
-  { key: 'completion', label: 'Completion Rate', width: '160px', align: 'center' },
-  { key: 'timeSpent', label: 'Avg. Time Spent', width: '160px', align: 'center' },
-  { key: 'avgScore', label: 'Avg. Score', width: '140px', align: 'center' },
-  { key: 'trend', label: 'Trend', width: '120px', align: 'center' }
+  // { key: 'enrollments', label: 'Enrollments', align: 'right', width: '140px' },
+  // { key: 'completion', label: 'Completion Rate', width: '160px', align: 'center' },
+  // { key: 'timeSpent', label: 'Avg. Time Spent', width: '160px', align: 'center' },
+  { key: 'avgScore', label: 'Total Users', width: '140px', align: 'center' },
+  // { key: 'trend', label: 'Trend', width: '120px', align: 'center' }
 ];
 
 const courseStats = reactive([
-  { course: 'Data Structures and Algorithms', enrollments: 142, completion: '82%', timeSpent: '12.4h', avgScore: '87%', trendIcon: 'fas fa-arrow-up', trendClass: 'trend-positive' },
-  { course: 'Database Systems', enrollments: 118, completion: '76%', timeSpent: '10.2h', avgScore: '84%', trendIcon: 'fas fa-arrow-up', trendClass: 'trend-positive' },
-  { course: 'Calculus I', enrollments: 205, completion: '71%', timeSpent: '14.7h', avgScore: '79%', trendIcon: 'fas fa-arrow-down', trendClass: 'trend-negative' },
-  { course: 'Business Management', enrollments: 87, completion: '68%', timeSpent: '8.9h', avgScore: '81%', trendIcon: 'fas fa-arrow-up', trendClass: 'trend-positive' },
-  { course: 'Introduction to Engineering', enrollments: 93, completion: '63%', timeSpent: '9.5h', avgScore: '76%', trendIcon: 'fas fa-minus', trendClass: 'trend-neutral' }
+  { course: 'Data Structures and Algorithms', enrollments: 142, completion: '82%', timeSpent: '12.4h', avgScore: '4', trendIcon: 'fas fa-arrow-up', trendClass: 'trend-positive' },
+  { course: 'Database Systems', enrollments: 118, completion: '76%', timeSpent: '10.2h', avgScore: '8', trendIcon: 'fas fa-arrow-up', trendClass: 'trend-positive' },
+  // { course: 'Calculus I', enrollments: 205, completion: '71%', timeSpent: '14.7h', avgScore: '79%', trendIcon: 'fas fa-arrow-down', trendClass: 'trend-negative' },
+  // { course: 'Business Management', enrollments: 87, completion: '68%', timeSpent: '8.9h', avgScore: '81%', trendIcon: 'fas fa-arrow-up', trendClass: 'trend-positive' },
+  // { course: 'Introduction to Engineering', enrollments: 93, completion: '63%', timeSpent: '9.5h', avgScore: '76%', trendIcon: 'fas fa-minus', trendClass: 'trend-neutral' }
 ]);
 
 function exportReport() {

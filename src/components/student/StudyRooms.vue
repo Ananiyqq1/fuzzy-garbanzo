@@ -86,7 +86,15 @@ interface ChatModalState {
   messages: ChatMessage[];
 }
 
-type StudyRoomFilter = 'all' | StudentStatus;
+type StudyRoomCategory =
+  | 'programming'
+  | 'databases'
+  | 'systems'
+  | 'web-mobile'
+  | 'ict-research'
+  | 'specialized';
+
+type StudyRoomFilter = 'all' | StudentStatus | StudyRoomCategory;
 
 interface TabItem {
   value: string;
@@ -120,15 +128,43 @@ const activeFilter = ref<StudyRoomFilter>('all');
 const filterTabs = [
   { value: 'all', label: 'All Rooms', icon: 'fas fa-layer-group' },
   { value: 'available', label: 'Available', icon: 'fas fa-door-open' },
-  { value: 'occupied', label: 'Occupied', icon: 'fas fa-clock' },
-  { value: 'full', label: 'Fully Booked', icon: 'fas fa-ban' },
+  { value: 'programming', label: 'Programming', icon: 'fas fa-code' },
+  { value: 'databases', label: 'Databases', icon: 'fas fa-database' },
+  { value: 'systems', label: 'Systems', icon: 'fas fa-network-wired' },
+  { value: 'web-mobile', label: 'Web & Mobile', icon: 'fas fa-globe' },
+  { value: 'ict-research', label: 'ICT & Research', icon: 'fas fa-chart-line' },
+  { value: 'specialized', label: 'Specialized', icon: 'fas fa-brain' },
 ] as TabItem[]
+
+const categoryKeywords: Record<StudyRoomCategory, string[]> = {
+  programming: ['program', 'algorithm', 'software', 'code'],
+  databases: ['database', 'data', 'sql'],
+  systems: ['system', 'network', 'unix', 'assembly'],
+  'web-mobile': ['web', 'mobile'],
+  'ict-research': ['ict', 'project', 'research'],
+  specialized: ['artificial', 'ai', 'compiler', 'graphics', 'retrieval'],
+};
 
 const filteredRooms = computed<StudentRoom[]>(() => {
   if (activeFilter.value === 'all') {
     return student.allRooms;
   }
-  return student.allRooms.filter((room) => room.status === activeFilter.value);
+
+  if (['available', 'occupied', 'full'].includes(activeFilter.value)) {
+    return student.allRooms.filter((room) => room.status === activeFilter.value);
+  }
+
+  const keywords = categoryKeywords[activeFilter.value as StudyRoomCategory];
+  if (!keywords) {
+    return student.allRooms;
+  }
+
+  return student.allRooms.filter((room) =>
+    room.features.some((feature) => {
+      const normalized = feature.toLowerCase();
+      return keywords.some((keyword) => normalized.includes(keyword));
+    })
+  );
 });
 
 const getStatusClass = (status: StudentStatus): string => {

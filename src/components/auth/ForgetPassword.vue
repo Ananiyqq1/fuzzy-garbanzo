@@ -1,11 +1,10 @@
 <template>
   <div class="forgot-password-page">
     <div class="container">
-      <button class="back-button" @click="goBack">
-        <i class="fas fa-arrow-left"></i> Back
-      </button>
-      
       <div class="form-container">
+        <button class="back-button" @click="goBack" type="button" aria-label="Back">
+          <i class="fas fa-arrow-left"></i>
+        </button>
         <h1>Forgot Password</h1>
         <p>{{ stepDescriptions[currentStep - 1] }}</p>
         
@@ -253,7 +252,7 @@ const goBack = (): void => {
   if (currentStep.value > 1) {
     currentStep.value -= 1;
   } else {
-    router.back();
+    router.push('/auth');
   }
 };
 </script>
@@ -293,10 +292,11 @@ const goBack = (): void => {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  padding: 40px;
+  padding: 48px 40px 40px;
   width: 100%;
   text-align: center;
   border-radius: 10px;
+  position: relative;
 }
 
 h1 {
@@ -393,24 +393,18 @@ button:disabled {
 
 .back-button {
   position: absolute;
-  top: 20px;
-  left: 20px;
-  background: none;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
   border: none;
-  color: #6b7280;
-  font-size: 16px;
-  cursor: pointer;
-  transition: color 0.3s ease;
-  padding: 8px;
-  min-width: auto;
-  display: block; /* Always visible on larger screens */
-}
-
-.back-button:hover {
   color: #111827;
-  background: none;
-  transform: none;
-  box-shadow: none;
+  font-size: 1.15rem;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .steps-container {
@@ -516,16 +510,8 @@ button:disabled {
 /* Responsive Design for Back Button */
 @media (min-width: 768px) {
   .back-button {
-    font-size: 18px;
-    color: #111827;
-    padding: 12px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .back-button:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #374151;
+    top: 16px;
+    right: 16px;
   }
 }
 </style>

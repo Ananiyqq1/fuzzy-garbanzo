@@ -27,16 +27,15 @@ const AdminProfile: LazyView = () => import('../components/admin/AdminProfile.vu
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/auth' },
     { path: '/auth', component: SignInUp, meta: { public: true } },
     { path: '/otp', component: OTP, meta: { public: true } },
     { path: '/forgot-password', component: ForgotPassword, meta: { public: true } },
 
     {
-      path: '/student',
+      path: '/',
       component: StudentView,
       children: [
-        { path: '', redirect: '/student/dashboard' },
+        { path: '', redirect: '/dashboard' },
         { path: 'dashboard', component: StudentDashboard },
         { path: 'sessions', component: MySessions },
         { path: 'resources', component: Resources },
@@ -47,7 +46,7 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'student' },
     },
     {
-      path: '/student/preferences',
+      path: '/preferences',
       component: StudentPreferences,
       meta: { requiresAuth: true, role: 'student' },
     },
@@ -57,7 +56,7 @@ const router = createRouter({
       component: AdminView,
       children: [
         { path: '', redirect: '/admin/dashboard' },
-        { path: 'dashboard', component: AdminDashboard },
+        { path: 'dashboard', component: AdminDashboard  },
         { path: 'courses', component: CourseManagement },
         { path: 'topics', component: TopicManagement },
         { path: 'users', component: UserManagement },
