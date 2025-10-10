@@ -1,17 +1,19 @@
 export type StudentStatus = 'available' | 'occupied' | 'full';
 
-export interface StudentRoom {
-  id: number;
-  name: string;
-  status: StudentStatus;
-  capacity: number;
-  capacityIcon: string;
-  capacityText: string;
-  features: string[];
-  primaryAction: string;
-  primaryDisabled: boolean;
+export interface StudentRoom { 
+  name: string; 
+  memberCount: number; 
+  topicName: string[];
+  CourseCode: string; 
 }
-
+export const mapToStudentRoom = (r: any): StudentRoom => {
+  return {
+    name: r.roomName ,
+    memberCount: Number(r.memberCount),
+    topicName: r.topicName,
+    CourseCode: r.courseCode
+  };
+};
 export type ResourceType = 'lectures' | 'books' | 'papers';
 
 export interface StudentResource {
