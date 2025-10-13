@@ -55,8 +55,9 @@
 
       <div class="action-buttons">
         <AppButton variant="secondary" size="small" @click="skip">Skip for Now</AppButton>
-        <AppButton size="small" :disabled="selectedCount < minSelections" @click="continueOtp">
-          Continue to OTP Verification
+        <AppButton size="small" :disabled="selectedCount < minSelections || isSubmitting" @click="continueOtp">
+          <span v-if="isSubmitting">Submitting...</span>
+          <span v-else>Continue to OTP Verification</span>
         </AppButton>
       </div>
     </div>
@@ -71,7 +72,6 @@ import AppCard from '../common/AppCard.vue';
 import AppContentHeader from '../common/AppContentHeader.vue';
 import AppTabs from '../common/AppTabs.vue';
 import { useAuthStore } from '@/stores/useAuthStore';
-// import SignUp from '../auth/SignUp.vue';
 // import { signUp } from '../auth/api/SignUp';
 const auth = useAuthStore()
 import {
@@ -84,6 +84,7 @@ import { useSignUpData } from '../../composables/useSignUpData';
 const router = useRouter();
 const userInfo = auth.tempPayload;
 const selectedCourses = ref([]);
+const isSubmitting = ref(false);
 const activeFilter = ref(studentPreferenceFilters[0].value);
 const maxSelections = studentPreferenceSelectionLimits.max;
 const minSelections = studentPreferenceSelectionLimits.min;
@@ -130,12 +131,22 @@ function toggleSelection(topicName) {
 }
 
 function skip() {
-  alert("You haven't selected any preferences. You can come back later to complete your selection.");
+  auth.updateTempPayload({
+    bio: signUpData.bio,
+    interests: [],
+  });
+  const user = auth.completeLocalSignup([], signUpData.bio);
+  if (!user) {
+    console.warn('Skip attempted without signup data; redirecting to /auth');
+    router.push('/auth');
+    return;
+  }
   router.push('/');
 }
 
 async function continueOtp() {
-   if (!userInfo) { 
+  if (isSubmitting.value) return;
+  if (!userInfo) {
     console.warn('No signup payload found, redirecting to /auth');
     router.push('/auth');
     return;
@@ -144,7 +155,7 @@ async function continueOtp() {
     alert(`Please select at least ${minSelections} courses to continue.`);
     return;
   }
-  
+
   const signUpDetails = {
     name: signUpData.name,
     username: signUpData.username,
@@ -155,36 +166,23 @@ async function continueOtp() {
 
   const courseSelections = [...selectedCourses.value];
 
-  console.log('Onboarding submission:', {
-    signUp: signUpDetails,
-    selectedCourses: courseSelections,
-  });
-  console.log('Selected courses:', selectedCourses.value);
-  router.push('/')
-  // const res = await signUp({
-  //   ...userInfo,
-  //   interests: selectedCourses.value,
-  //   bio: 'Please add a field to add bio Ananiya'
-  // })
-
-  // if (res.status !== 200) {
-  //   alert('Sign up failed. Please try again.')
-  //   router.push('/auth')
-  //   return
-  // }
-
-  // if (res.data.verification_required && res.data.otp_session_id) {
-  //   alert(`Success! ${selectedCount.value} courses selected. Redirecting to OTP verification...`)
-  //   router.push(`/auth/otp/${res.data.otp_session_id}`)
-  //   return
-  // }
-
-  // if (!res.data.verification_required) {
-  //   await auth.fetchUser()
-  //   router.push('/')
-  //   return
-  // }
-
+  try {
+    isSubmitting.value = true;
+    auth.updateTempPayload({
+      bio: signUpDetails.bio,
+      interests: courseSelections,
+    });
+    auth.completeLocalSignup(courseSelections, signUpDetails.bio, { preserveTemp: true });
+    router.push({
+      path: '/auth/otp',
+      query: { role: 'Student' },
+    });
+  } catch (error) {
+    console.error('Sign up submission error:', error);
+    alert('Sign up failed. Please try again.');
+  } finally {
+    isSubmitting.value = false;
+  }
 }
 </script>
 

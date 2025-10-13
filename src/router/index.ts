@@ -1,7 +1,6 @@
 import { useAuthStore } from '@/stores/useAuthStore';
 import AuthView from '@/views/auth/AuthView.vue';
 import { createRouter, createWebHistory } from 'vue-router';
-import SignInUp from '../components/auth/LoginComponent.vue';
 import OTP from "../components/auth/OTP.vue";
 import ForgotPassword from '../components/auth/ForgetPassword.vue'
 import StudentView from '../views/student/StudentView.vue'
@@ -26,14 +25,25 @@ import Room from '@/components/student/Room.vue';
 const routes = [
   {
     path: '/auth',
+    name: 'Auth',
     component: AuthView,
-    meta: { requiresAuth: false },
-    children: [
-      { path: '', component: SignInUp },
-      { path: 'otp/:session_id', component: OTP, meta: { title: "Please check your email" }, },
-      { path: 'forgot-password', component: ForgotPassword },
-      { path: 'preferences', component: StudentPreferences, name: "StudentPreferences" }
-    ]
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/auth/otp',
+    component: OTP,
+    meta: { requiresAuth: false, title: 'Please check your email' }
+  },
+  {
+    path: '/auth/forgot-password',
+    component: ForgotPassword,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/auth/preferences',
+    component: StudentPreferences,
+    name: 'StudentPreferences',
+    meta: { requiresAuth: false }
   },
 
   // {
@@ -99,6 +109,10 @@ router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.meta.requiresAuth as boolean | undefined;
   const roleRequired = to.meta.role as string | undefined;
   const userRoles = auth.user?.roles || [];
+
+  if (to.path.startsWith('/auth/otp')) {
+    return next();
+  }
 
   if (requiresAuth && !auth.isAuthenticated) {
     if (auth.tempPayload && to.meta.role === 'peer') {

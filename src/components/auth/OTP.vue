@@ -35,12 +35,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { verify_otp } from './api/VerifyOTP'
+// import { verify_otp } from './api/VerifyOTP'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = useRouter()
 const route = useRoute()
-const otp_session_id = route.params.session_id
+// const otp_session_id = route.params.session_id
 const otpDigits = ref(['', '', '', '', '', ''])
 const otpInputs = ref([])
 const isLoading = ref(false)
@@ -77,38 +77,18 @@ const verifyOtp = async () => {
   if (!isOtpComplete.value || isLoading.value) return
   const otpCode = otpDigits.value.join('')
   isLoading.value = true
-  try { 
+  try {
     const isValid = /^\d{6}$/.test(otpCode)
     if (!isValid) throw new Error('invalid-otp')
-    const result = await verify_otp({
-      session_id: otp_session_id,
-      code: otpCode
-    })
-     
-    if (result.status === 200) {
-      await auth.fetchUser()
-      if (auth.hasRole("admin")) {
-        router.push('/admin')
-        return;
-      } else if (auth.hasRole("peer")) {
-        router.push('/')
-        return;
-      }
-      else {
-        router.push('/auth')
-        return;
-      }
+
+    // Simulate successful verification locally
+    const user = auth.completeLocalSignup([], undefined, { preserveTemp: false })
+    if (!user) {
+      console.warn('No provisional signup found; creating fallback user')
+      auth.completeLocalSignup([], '', { preserveTemp: false })
     }
-    else if (result.status === 400) {
-      alert('Invalid OTP code. Please try again.')
-      otpDigits.value = ['', '', '', '', '', '']
-      otpInputs.value[0]?.focus()
-      return;
-    }
-    else {
-      router.push('/auth')
-      return;
-    }
+
+    router.push('/')
   } catch (error) {
     console.error('OTP verification error:', error)
     alert('Invalid OTP code. Please try again.')
@@ -120,8 +100,8 @@ const verifyOtp = async () => {
 }
 
 const resendOtp = async () => {
-  // final_draft behavior: simple alert
-  alert('New OTP code has been sent to your email')
+  // Local-only behavior: simple alert
+  alert('New OTP code has been generated (demo mode).')
 }
 
 const goBack = () => {

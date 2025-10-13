@@ -90,7 +90,7 @@ function emitSwitchToSignUp() {
 async function submit() {
   if (!isFormValid.value || isLoading.value) return
 
-  // Temporarily bypass API sign-in and navigate directly based on the selected role.
+  // Demo-only flow: bypass backend login and navigate directly.
   // isLoading.value = true
   try {
     auth.user = {

@@ -136,7 +136,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
+import { useAuthStore } from '@/stores/useAuthStore'
+import { useSignUpData } from '@/composables/useSignUpData'
 import AppButton from '../common/AppButton.vue'
 import AppCard from '../common/AppCard.vue'
 import AppContentHeader from '../common/AppContentHeader.vue'
@@ -149,16 +151,21 @@ const isEditing = ref(false)
 const newInterest = ref('')
 const fileInput = ref(null)
 
+const auth = useAuthStore()
+const { signUpData } = useSignUpData()
+
+const FALLBACK_AVATAR = new URL('../../assets/default-avatar.svg', import.meta.url).href
+
 const studentData = reactive({
-  name: 'John Doe',
-  username: '@johndoe',
-  roles: 'Student, Peer Mentor',
-  avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
-  instituteEmail: 'john.doe@hilcoe.edu.et',
-  personalEmail: 'johndoe@gmail.com',
-  overallScore: 87.5,
-  bio: 'Computer Science student passionate about AI and machine learning. Currently working on a research project in natural language processing.',
-  interests: ['Artificial Intelligence', 'Machine Learning', 'Natural Language Processing', 'Data Science']
+  name: '',
+  username: '',
+  roles: '',
+  avatar: FALLBACK_AVATAR,
+  instituteEmail: '',
+  personalEmail: '',
+  overallScore: 0,
+  bio: '',
+  interests: []
 })
 
 const editData = reactive({
@@ -171,6 +178,35 @@ const editData = reactive({
   avatar: '',
   interests: []
 })
+
+const sanitizeUsername = (value) => {
+  if (!value) return ''
+  return value.startsWith('@') ? value : `@${value}`
+}
+
+const hydrateStudentData = () => {
+  if (isEditing.value) return
+
+  const user = auth.user
+
+  studentData.name = user?.name || signUpData.name || 'Student'
+  studentData.username = user?.username
+    ? sanitizeUsername(user.username)
+    : sanitizeUsername(signUpData.username)
+  studentData.roles = user?.roles?.length ? user.roles.join(', ') : 'Student'
+  studentData.avatar = user?.profile_photo || editData.avatar || FALLBACK_AVATAR
+  studentData.instituteEmail = user?.institute_email || signUpData.instituteEmail || ''
+  studentData.personalEmail = user?.email || signUpData.personalEmail || ''
+  studentData.overallScore = user?.overall_score ?? studentData.overallScore
+  studentData.bio = user?.bio || signUpData.bio || 'Add a short bio so peers can learn more about you.'
+  studentData.interests = user?.interests?.length
+    ? [...user.interests]
+    : [...editData.interests]
+
+  if (!studentData.interests.length && signUpData.bio) {
+    studentData.interests = ['Getting Started']
+  }
+}
 
 // Methods
 const toggleEdit = () => {
@@ -247,8 +283,29 @@ const handleAvatarSelected = (event) => {
 }
 
 onMounted(() => {
-  console.log('Student profile mounted')
+  hydrateStudentData()
 })
+
+watch(
+  () => auth.user,
+  () => {
+    hydrateStudentData()
+  },
+  { immediate: true }
+)
+
+watch(
+  () => ({
+    name: signUpData.name,
+    username: signUpData.username,
+    instituteEmail: signUpData.instituteEmail,
+    personalEmail: signUpData.personalEmail,
+    bio: signUpData.bio
+  }),
+  () => {
+    hydrateStudentData()
+  }
+)
 </script>
 
 <style scoped>

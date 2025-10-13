@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/useAuthStore'
 import StudentNotificationToast from '../../components/student/modals/StudentNotificationToast.vue'
@@ -63,9 +63,9 @@ const isTablet = ref(false)
 const sidebarOpen = ref(false)
 const isToastVisible = ref(false)
 const toastMessage = ref('')
-const studentName = ref('John Doe')
+const studentName = ref('')
 const studentRole = ref('Student')
-const studentAvatar = ref('https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80')
+const studentAvatar = ref('')
 const notificationCount = ref(0)
 
 let resizeListener
@@ -77,7 +77,6 @@ const handleLogout = () => {
 }
 
 const navigateToProfile = () => {
-  router.push('/profile')
   router.push('/profile')
 }
 
@@ -97,10 +96,20 @@ const updateBreakpoints = () => {
   sidebarOpen.value = !isMobile.value
 }
 
+const DEFAULT_AVATAR = new URL('../../assets/default-avatar.svg', import.meta.url).href
+
+const deriveProfile = () => {
+  const user = auth.user
+  studentName.value = user?.name || user?.username || 'Student'
+  studentRole.value = user?.roles?.length ? user.roles[0] : 'Student'
+  studentAvatar.value = user?.profile_photo || DEFAULT_AVATAR
+}
+
 onMounted(() => {
   updateBreakpoints()
   resizeListener = () => updateBreakpoints()
   window.addEventListener('resize', resizeListener)
+  deriveProfile()
 })
 
 onUnmounted(() => {
@@ -108,6 +117,14 @@ onUnmounted(() => {
     window.removeEventListener('resize', resizeListener)
   }
 })
+
+watch(
+  () => auth.user,
+  () => {
+    deriveProfile()
+  },
+  { immediate: true }
+)
 
 const navMenuItems = computed(() => [
   { name: 'Dashboard', path: '/', icon: 'fas fa-home' },

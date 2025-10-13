@@ -48,13 +48,13 @@
             </span>
           </div>
           <div class="resource-actions">
-            <AppButton
+            <!-- <AppButton
               size="small"
               variant="secondary"
               @click="openPreview(resource)"
             >
               Preview
-            </AppButton>
+            </AppButton> -->
             <AppButton size="small" @click="handleResourceAction(resource)">
               {{ resource.actionLabel }}
             </AppButton>

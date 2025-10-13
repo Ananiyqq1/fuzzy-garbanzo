@@ -48,7 +48,7 @@ export const studentRooms: StudentRoom[] = [
   {
     id: 5,
     name: 'Systems Control Room',
-    status: 'occupied',
+    status: 'available',
     capacity: 9,
     capacityIcon: 'fas fa-users',
     capacityText: 'Capacity: 9 people',
@@ -81,7 +81,7 @@ export const studentRooms: StudentRoom[] = [
   {
     id: 8,
     name: 'Danait Retrieval Circle',
-    status: 'full',
+    status: 'available',
     capacity: 8,
     capacityIcon: 'fas fa-users',
     capacityText: 'Capacity: 8 people',
@@ -103,7 +103,7 @@ export const studentRooms: StudentRoom[] = [
   {
     id: 10,
     name: 'Dagm Subnet Ops',
-    status: 'occupied',
+    status: 'available',
     capacity: 10,
     capacityIcon: 'fas fa-users',
     capacityText: 'Capacity: 10 people',

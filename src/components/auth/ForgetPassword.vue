@@ -292,7 +292,7 @@ const goBack = (): void => {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  padding: 48px 40px 40px;
+  padding: 64px 44px 48px;
   width: 100%;
   text-align: center;
   border-radius: 10px;
@@ -376,6 +376,12 @@ button:hover:not(:disabled) {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 button:active:not(:disabled) {
   transform: scale(0.98);
 }
@@ -385,32 +391,41 @@ button:focus {
   box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.2);
 }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
 .back-button {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 16px;
+  left: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  border: none;
-  color: #111827;
-  font-size: 1.15rem;
-  padding: 0;
-  line-height: 1;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  border: 1px solid rgba(17, 24, 39, 0.15);
+  background: rgba(255, 255, 255, 0.85);
+  color: #4b5563;
+  font-size: 16px;
   cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 10px 25px -18px rgba(15, 23, 42, 0.6);
+}
+
+.back-button:hover {
+  color: #111827;
+  background: rgba(17, 24, 39, 0.08);
+  border-color: rgba(17, 24, 39, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 35px -20px rgba(15, 23, 42, 0.55);
+}
+
+.back-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.45);
 }
 
 .steps-container {
   display: flex;
   justify-content: space-between;
-  width: 100%;
   margin: 20px 0;
   gap: 10px;
 }
