@@ -6,7 +6,7 @@ let connection = null;
 export function useSignalR() {
   async function connect() {
     connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://localhost:5102/roomHub") // adjust to backend
+      .withUrl(import.meta.env.VITE_SIGNALR_URL || "http://localhost:7025/roomHub")
       .withAutomaticReconnect()
       .build();
 

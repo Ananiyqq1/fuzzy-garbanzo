@@ -1,23 +1,22 @@
 <template>
   <div class="topic-management">
+    <AppLoading :show="isLoading" size="large" :duration="0" />
     <AppContentHeader
       title="Topic Management"
       subtitle="Organize and manage learning topics and subtopics"
-    >
-      <template #actions>
-        <!-- <AppButton icon="fas fa-plus" @click="openTopicModal">Add New Topic</AppButton> -->
-      </template>
-    </AppContentHeader>
+    />
 
     <AppFilterBar>
       <div class="filter-row">
         <AppSelect v-model="filters.course" label="Course">
           <option value="all">All Courses</option>
-          <option v-for="course in courseOptions" :key="course" :value="course">{{ course }}</option>
-        </AppSelect>
-        <AppSelect v-model="filters.status" label="Status">
-          <option value="all">All Status</option>
-          <option v-for="status in statusOptions" :key="status" :value="status">{{ status }}</option>
+          <option
+            v-for="option in courseOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
         </AppSelect>
         <AppInput
           v-model="filters.search"
@@ -27,16 +26,6 @@
           class="filter-search"
         />
       </div>
-      <template #actions>
-        <!-- <AppButton
-          variant="secondary"
-          icon="fas fa-download"
-          @click="exportTopics"
-{{ ... }}
-        >
-          Export
-        </AppButton> -->
-      </template>
     </AppFilterBar>
 
     <AppFormSection title="Create New Topic">
@@ -48,7 +37,13 @@
         />
         <AppSelect v-model="newTopic.course" label="Parent Course">
           <option value="">Select course</option>
-          <option v-for="course in courseOptions" :key="`parent-${course}`" :value="course">{{ course }}</option>
+          <option
+            v-for="option in courseOptions"
+            :key="`parent-${option.value}`"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
         </AppSelect>
         <AppTextarea
           v-model="newTopic.description"
@@ -58,21 +53,23 @@
           class="full-width"
         />
       </div>
+      <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
       <template #footer>
-        <AppButton icon="fas fa-save" @click="createTopic">Create Topic</AppButton>
+        <AppButton
+          icon="fas fa-save"
+          :disabled="isSaving"
+          @click="submitTopic"
+        >
+          {{ editingTopicId ? 'Update Topic' : 'Create Topic' }}
+        </AppButton>
       </template>
     </AppFormSection>
 
     <AppDataTable
       :columns="columns"
       :rows="filteredTopics"
-      row-key="title"
+      :row-key="rowKey"
     >
-      <template #cell-status="{ row }">
-        <AppStatusBadge :variant="statusVariants[row.status]">
-          {{ row.statusLabel }}
-        </AppStatusBadge>
-      </template>
       <template #cell-actions="{ row }">
         <div class="table-actions">
           <button class="icon-button edit" @click="editTopic(row)">
@@ -90,95 +87,179 @@
   </div>
 </template>
 
-<script setup>
-import { computed, reactive } from 'vue';
-import AppButton from '../common/AppButton.vue';
-import AppContentHeader from '../common/AppContentHeader.vue';
-import AppDataTable from '../common/AppDataTable.vue';
-import AppFilterBar from '../common/AppFilterBar.vue';
-import AppFormSection from '../common/AppFormSection.vue';
-import AppInput from '../common/AppInput.vue';
-import AppSelect from '../common/AppSelect.vue';
-import AppStatusBadge from '../common/AppStatusBadge.vue';
-import AppTextarea from '../common/AppTextarea.vue';
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref } from 'vue'
+import AppButton from '../common/AppButton.vue'
+import AppContentHeader from '../common/AppContentHeader.vue'
+import AppDataTable from '../common/AppDataTable.vue'
+import AppFilterBar from '../common/AppFilterBar.vue'
+import AppFormSection from '../common/AppFormSection.vue'
+import AppInput from '../common/AppInput.vue'
+import AppSelect from '../common/AppSelect.vue'
+import AppTextarea from '../common/AppTextarea.vue'
+import AppLoading from '../common/AppLoading.vue'
+import { fetchTopics, createTopic, updateTopic, deleteTopic, type TopicResponse } from '@/services/adminTopics'
+import { fetchCourses, type CourseResponse } from '@/services/adminCourses'
 
-const courseOptions = [
-  'Data Structures and Algorithms',
-  'Database Systems',
-];
 
-const state = reactive({
-  topics: [
-    { title: 'Linked Lists', course: 'Data Structures and Algorithms', difficulty: 'Intermediate', duration: '4 hours', resources: 12, status: 'Active', statusLabel: 'Active' },
-    { title: 'SQL Queries', course: 'Database Systems', difficulty: 'Beginner', duration: '3 hours', resources: 8, status: 'Active', statusLabel: 'Active' },
-  ],
-  filters: {
-    course: 'all',
-    search: ''
-  },
-  newTopic: {
-    title: '',
-    course: '',
-    difficulty: '',
-    duration: '',
-    description: ''
+const courses = ref<CourseResponse[]>([])
+const topics = ref<TopicResponse[]>([])
+
+const filters = reactive({
+  course: 'all',
+  search: ''
+})
+
+const isLoading = ref(false)
+const isSaving = ref(false)
+const errorMessage = ref('')
+const editingTopicId = ref<string | null>(null)
+
+const newTopic = reactive({
+  title: '',
+  course: '',
+  description: ''
+})
+
+const courseOptions = computed(() =>
+  courses.value.map((course) => ({
+    value: course.courseCode,
+    label: course.name
+  }))
+)
+
+const courseLabelLookup = computed(() => {
+  const map = new Map<string, string>()
+  for (const course of courses.value) {
+    map.set(course.courseCode, course.name)
   }
-});
-
-const filters = state.filters;
-const newTopic = state.newTopic;
+  return map
+})
 
 const columns = [
-  { key: 'title', label: 'Topic Title', minWidth: '220px' },
-  { key: 'course', label: 'Course', minWidth: '200px' },
-  { key: 'resources', label: 'Resources', width: '140px', align: 'center' },
-  { key: 'status', label: 'Status', width: '140px', align: 'center' },
-  { key: 'actions', label: 'Actions', width: '140px', align: 'center' },
-];
-
-const statusVariants = {
-  Active: 'success',
-  Inactive: 'danger',
-  Draft: 'warning',
-};
+  { key: 'name', label: 'Topic Title', minWidth: '220px' },
+  { key: 'courseLabel', label: 'Course', minWidth: '200px' },
+  { key: 'description', label: 'Description', minWidth: '260px' },
+  { key: 'actions', label: 'Actions', width: '140px', align: 'center' }
+]
 
 const filteredTopics = computed(() => {
-  return state.topics
-    .map(topic => ({
+  const query = filters.search.trim().toLowerCase()
+  return topics.value
+    .map((topic) => ({
       ...topic,
-      actions: 'actions',
+      courseLabel: courseLabelLookup.value.get(topic.courseCode) ?? topic.courseCode,
+      actions: 'actions'
     }))
-    .filter(topic => {
-      const matchesCourse = filters.course === 'all' || topic.course === filters.course;
-      const query = filters.search.trim().toLowerCase();
-      const matchesSearch = !query || `${topic.title} ${topic.course}`.toLowerCase().includes(query);
-      return matchesCourse && matchesSearch;
-    });
-});
+    .filter((topic) => {
+      const matchesCourse = filters.course === 'all' || topic.courseCode === filters.course
+      const matchesSearch = !query || `${topic.name} ${topic.courseLabel}`.toLowerCase().includes(query)
+      return matchesCourse && matchesSearch
+    })
+})
 
-function openTopicModal() {
-  console.log('Open topic creation modal');
+const rowKey = (row: TopicResponse) => row.topicId
+
+const resetForm = () => {
+  editingTopicId.value = null
+  newTopic.title = ''
+  newTopic.course = ''
+  newTopic.description = ''
+  errorMessage.value = ''
 }
 
-function createTopic() {
-  console.log('Create topic clicked', { ...newTopic });
+const loadTopics = async () => {
+  try {
+    topics.value = await fetchTopics()
+    console.log('Topics loaded:', topics.value.length)
+  } catch (error: any) {
+    console.error('Failed to load topics', error)
+    throw error // Propagate error to loadData
+  }
 }
 
-function editTopic(topic) {
-  console.log('Edit topic', topic);
+const loadCourses = async () => {
+  try {
+    courses.value = await fetchCourses()
+    console.log('Courses loaded for topics:', courses.value.length)
+  } catch (error: any) {
+    console.error('Failed to load courses for topics', error)
+    throw error // Propagate error to loadData
+  }
 }
 
-function removeTopic(topic) {
-  console.log('Remove topic', topic);
+const loadData = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+  try {
+    await Promise.all([loadCourses(), loadTopics()])
+  } catch (error: any) {
+    console.error('Failed to load data', error)
+    errorMessage.value = error?.response?.data || error?.message || 'Failed to load data.'
+  } finally {
+    isLoading.value = false
+  }
 }
 
-function viewTopic(topic) {
-  console.log('View topic', topic);
+const submitTopic = async () => {
+  errorMessage.value = ''
+  if (!newTopic.title.trim() || !newTopic.course) {
+    errorMessage.value = 'Topic title and course are required.'
+    return
+  }
+
+  const payload = {
+    CourseCode: newTopic.course,
+    Name: newTopic.title.trim(),
+    Description: newTopic.description.trim()
+  }
+
+  isSaving.value = true
+  try {
+    if (editingTopicId.value) {
+      await updateTopic(editingTopicId.value, payload)
+    } else {
+      await createTopic(payload)
+    }
+    await loadTopics()
+    resetForm()
+  } catch (error: any) {
+    console.error('Failed to save topic', error)
+    errorMessage.value = error?.response?.data || 'Failed to save topic.'
+  } finally {
+    isSaving.value = false
+  }
 }
 
-function exportTopics() {
-  console.log('Export topics');
+const editTopic = (topic: TopicResponse & { courseLabel?: string }) => {
+  editingTopicId.value = topic.topicId
+  newTopic.title = topic.name
+  newTopic.course = topic.courseCode
+  newTopic.description = topic.description
+  errorMessage.value = ''
 }
+
+const removeTopic = async (topic: TopicResponse) => {
+  isSaving.value = true
+  errorMessage.value = ''
+  try {
+    await deleteTopic(topic.topicId)
+    await loadTopics()
+  } catch (error: any) {
+    console.error('Failed to delete topic', error)
+    errorMessage.value = error?.response?.data || 'Failed to delete topic.'
+  } finally {
+    isSaving.value = false
+  }
+}
+
+const viewTopic = (topic: TopicResponse) => {
+  console.log('View topic', topic)
+}
+
+onMounted(() => {
+  loadData()
+})
 </script>
 
 <style scoped>
@@ -208,6 +289,12 @@ function exportTopics() {
 
 .full-width {
   grid-column: 1 / -1;
+}
+
+.error-message {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
 }
 
 .table-actions {

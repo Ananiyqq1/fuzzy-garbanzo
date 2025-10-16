@@ -1,22 +1,22 @@
 <template>
   <div class="course-management">
+    <AppLoading :show="isLoading" size="large" :duration="0" />
     <AppContentHeader
       title="Course Management"
       subtitle="Create, edit, and manage courses and learning materials"
-    >
-      <template #actions>
-      </template>
-    </AppContentHeader>
+    />
 
     <AppFilterBar>
       <div class="filter-row">
         <AppSelect v-model="filters.category" label="Category">
           <option value="all">All Categories</option>
-          <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
-        </AppSelect>
-        <AppSelect v-model="filters.status" label="Status">
-          <option value="all">All Status</option>
-          <option v-for="status in statuses" :key="status" :value="status">{{ status }}</option>
+          <option
+            v-for="option in categoryOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
         </AppSelect>
         <AppInput
           v-model="filters.search"
@@ -26,8 +26,6 @@
           class="filter-search"
         />
       </div>
-      <template #actions>
-      </template>
     </AppFilterBar>
 
     <AppFormSection title="Create New Course">
@@ -41,10 +39,24 @@
           v-model="newCourse.code"
           label="Course Code"
           placeholder="e.g., CS101"
+          :disabled="!!editingCourseCode"
+        />
+        <AppInput
+          v-model="newCourse.creditHour"
+          type="number"
+          min="0"
+          label="Credit Hours"
+          placeholder="3"
         />
         <AppSelect v-model="newCourse.category" label="Category">
           <option value="">Select category</option>
-          <option v-for="category in categories" :key="`form-${category}`" :value="category">{{ category }}</option>
+          <option
+            v-for="option in categoryOptions"
+            :key="`form-${option.value}`"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
         </AppSelect>
         <AppTextarea
           v-model="newCourse.description"
@@ -54,8 +66,15 @@
           class="full-width"
         />
       </div>
-      <template #footer>
-        <AppButton icon="fas fa-save" @click="createCourse">Create Course</AppButton>
+      <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+      <template >
+        <AppButton
+          icon="fas fa-save"
+          :disabled="isSaving"
+          @click="submitCourse"
+        >
+          {{ editingCourseCode ? 'Update Course' : 'Create Course' }}
+        </AppButton>
       </template>
     </AppFormSection>
 
@@ -64,11 +83,6 @@
       :rows="filteredCourses"
       :row-key="rowKey"
     >
-      <template #cell-status="{ row }">
-        <AppStatusBadge :variant="statusVariants[row.status]">
-          {{ row.statusLabel }}
-        </AppStatusBadge>
-      </template>
       <template #cell-actions="{ row }">
         <div class="table-actions">
           <button class="icon-button edit" @click="editCourse(row)">
@@ -86,98 +100,193 @@
   </div>
 </template>
 
-<script setup>
-import { computed, reactive } from 'vue';
-import AppButton from '../common/AppButton.vue';
-import AppContentHeader from '../common/AppContentHeader.vue';
-import AppDataTable from '../common/AppDataTable.vue';
-import AppFilterBar from '../common/AppFilterBar.vue';
-import AppFormSection from '../common/AppFormSection.vue';
-import AppInput from '../common/AppInput.vue';
-import AppSelect from '../common/AppSelect.vue';
-import AppStatusBadge from '../common/AppStatusBadge.vue';
-import AppTextarea from '../common/AppTextarea.vue';
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref } from 'vue'
+import AppButton from '../common/AppButton.vue'
+import AppContentHeader from '../common/AppContentHeader.vue'
+import AppDataTable from '../common/AppDataTable.vue'
+import AppFilterBar from '../common/AppFilterBar.vue'
+import AppFormSection from '../common/AppFormSection.vue'
+import AppInput from '../common/AppInput.vue'
+import AppSelect from '../common/AppSelect.vue'
+import AppTextarea from '../common/AppTextarea.vue'
+import AppLoading from '../common/AppLoading.vue'
+import {
+  fetchCourses,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+  type CourseResponse
+} from '@/services/adminCourses'
 
-const categories = ['Computer Science', 'Engineering', 'Business', 'Mathematics'];
-const statuses = ['Active', 'Inactive', 'Draft'];
-const instructors = ['Dr. Abebe Kebede', 'Dr. Selamawit Tadesse', 'Dr. Michael Berhanu', 'Dr. Hanna Girma', 'Dr. Yordanos Lemma'];
 
-const state = reactive({
-  courses: [
-    { code: 'CS321', title: 'Data Structures and Algorithms', category: 'Programming', instructor: 'Dr. Abebe Kebede', enrollments: 142, status: 'Active', statusLabel: 'Active' },
-    { code: 'CS341', title: 'Database Systems', category: 'Databases % Data Management', instructor: 'Dr. Selamawit Tadesse', enrollments: 118, status: 'Active', statusLabel: 'Active' },
-  ],
-  filters: {
-    category: 'all',
-    status: 'all',
-    search: ''
-  },
-  newCourse: {
-    title: '',
-    code: '',
-    category: '',
-    instructor: '',
-    description: ''
+const categoryOptions = [
+  { value: 'Programming_and_SoftwareDev', numValue: 0, label: 'Programming & Software Dev' },
+  { value: 'Systems_and_Infrastructure', numValue: 1, label: 'Systems & Infrastructure' },
+  { value: 'Databases_and_DataMgmt', numValue: 2, label: 'Databases & Data Mgmt' },
+  { value: 'Web_and_Mobile_Tech', numValue: 3, label: 'Web & Mobile Tech' },
+  { value: 'Specialized_and_EmergingAreas', numValue: 4, label: 'Specialized & Emerging Areas' },
+  { value: 'IT_Management_and_Research', numValue: 5, label: 'IT Management & Research' }
+]
+
+const filters = reactive({
+  category: 'all',
+  search: ''
+})
+
+const courses = ref<CourseResponse[]>([])
+const isLoading = ref(false)
+const isSaving = ref(false)
+const errorMessage = ref('')
+const editingCourseCode = ref<string | null>(null)
+
+const newCourse = reactive({
+  title: '',
+  code: '',
+  creditHour: '',
+  category: '',
+  description: ''
+})
+
+const getCategoryLabel = (category: string | number) => {
+  // Backend returns numbers (enum values), match by numValue
+  if (typeof category === 'number') {
+    const match = categoryOptions.find((option) => option.numValue === category)
+    return match ? match.label : `Category ${category}`
   }
-});
-
-const filters = state.filters;
-const newCourse = state.newCourse;
+  // Fallback for string values
+  const match = categoryOptions.find((option) => option.value === category)
+  if (match) return match.label
+  return category ? category.replace(/_/g, ' ') : ''
+}
 
 const columns = [
-  { key: 'code', label: 'Course Code', minWidth: '140px' },
-  { key: 'title', label: 'Course Title', minWidth: '220px' },
-  { key: 'category', label: 'Category', minWidth: '160px' },
-  { key: 'status', label: 'Status', width: '140px', align: 'center' },
-  { key: 'actions', label: 'Actions', width: '140px', align: 'center' },
-];
-
-const statusVariants = {
-  Active: 'success',
-  Inactive: 'danger',
-  Draft: 'warning',
-};
+  { key: 'courseCode', label: 'Course Code', minWidth: '140px' },
+  { key: 'name', label: 'Course Title', minWidth: '220px' },
+  { key: 'categoryLabel', label: 'Category', minWidth: '200px' },
+  { key: 'creditHour', label: 'Credit Hours', width: '140px', align: 'center' },
+  { key: 'actions', label: 'Actions', width: '140px', align: 'center' }
+]
 
 const filteredCourses = computed(() => {
-  return state.courses
-    .map(course => ({
+  const query = filters.search.trim().toLowerCase()
+  return courses.value
+    .map((course) => ({
       ...course,
-      actions: 'actions',
+      categoryLabel: getCategoryLabel(course.category),
+      actions: 'actions'
     }))
-    .filter(course => {
-      const matchesCategory = filters.category === 'all' || course.category === filters.category;
-      const matchesStatus = filters.status === 'all' || course.statusLabel === filters.status;
-      const query = filters.search.trim().toLowerCase();
-      const matchesSearch = !query || `${course.code} ${course.title} ${course.instructor}`.toLowerCase().includes(query);
-      return matchesCategory && matchesStatus && matchesSearch;
-    });
-});
+    .filter((course) => {
+      const matchesCategory = filters.category === 'all' || course.category === filters.category
+      const matchesSearch =
+        !query || `${course.courseCode} ${course.name} ${course.description}`.toLowerCase().includes(query)
+      return matchesCategory && matchesSearch
+    })
+})
 
-const rowKey = (row) => row.code;
+const rowKey = (row: { courseCode: string }) => row.courseCode
 
-function openCourseModal() {
-  console.log('Open course creation modal');
+const resetForm = () => {
+  editingCourseCode.value = null
+  newCourse.title = ''
+  newCourse.code = ''
+  newCourse.creditHour = ''
+  newCourse.category = ''
+  newCourse.description = ''                                                                                    
+  errorMessage.value = ''
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                            
+const loadCourses = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+  console.log('Loading courses...')
+  try {
+    courses.value = await fetchCourses()
+    console.log('Courses loaded successfully:', courses.value.length)
+  } catch (error: any) {
+    console.error('Failed to load courses', error)
+    errorMessage.value = error?.response?.data || error?.message || 'Failed to load courses.'
+  } finally {
+    isLoading.value = false
+    console.log('Loading complete, isLoading set to false')
+  }
 }
 
-function createCourse() {
-  console.log('Create course clicked', { ...newCourse });
+const submitCourse = async () => {
+  errorMessage.value = ''
+  if (!newCourse.title.trim() || !newCourse.code.trim() || !newCourse.category) {
+    errorMessage.value = 'Course title, code, and category are required.'
+    return
+  }
+
+  const creditHourNumber = Number(newCourse.creditHour)
+  if (Number.isNaN(creditHourNumber) || creditHourNumber < 0) {
+    errorMessage.value = 'Credit hours must be a non-negative number.'
+    return
+  }
+
+  const payload = {
+    CourseCode: newCourse.code.trim(),
+    Name: newCourse.title.trim(),
+    Description: newCourse.description.trim(),
+    CreditHour: creditHourNumber,
+    Category: newCourse.category
+  }
+
+  isSaving.value = true
+  try {
+    if (editingCourseCode.value) {
+      await updateCourse(editingCourseCode.value, payload)
+    } else {
+      await createCourse(payload)
+    }
+    await loadCourses()
+    resetForm()
+  } catch (error: any) {
+    console.error('Failed to save course', error)
+    errorMessage.value = error?.response?.data || 'Failed to save course.'
+  } finally {
+    isSaving.value = false
+  }
 }
 
-function editCourse(course) {
-  console.log('Edit course', course);
+const editCourse = (course: CourseResponse & { categoryLabel?: string }) => {
+  editingCourseCode.value = course.courseCode
+  newCourse.title = course.name
+  newCourse.code = course.courseCode
+  newCourse.creditHour = String(course.creditHour ?? '')
+  // Convert category number to string value for editing
+  if (typeof course.category === 'number') {
+    const match = categoryOptions.find((option) => option.numValue === course.category)
+    newCourse.category = match?.value || ''
+  } else {
+    newCourse.category = course.category
+  }
+  newCourse.description = course.description
+  errorMessage.value = ''
 }
 
-function removeCourse(course) {
-  console.log('Remove course', course);
+const removeCourse = async (course: CourseResponse) => {
+  isSaving.value = true
+  errorMessage.value = ''
+  try {
+    await deleteCourse(course.courseCode)
+    await loadCourses()
+  } catch (error: any) {
+    console.error('Failed to delete course', error)
+    errorMessage.value = error?.response?.data || 'Failed to delete course.'
+  } finally {
+    isSaving.value = false
+  }
 }
 
-function viewCourse(course) {
-  console.log('View course', course);
+const viewCourse = (course: CourseResponse) => {
+  console.log('View course', course)
 }
 
-function exportCourses() {
-  console.log('Export courses');
-}
+onMounted(() => {
+  loadCourses()
+})
 </script>
 
 <style scoped>
@@ -203,6 +312,12 @@ function exportCourses() {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.25rem;
+}
+
+.error-message {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
 }
 
 .full-width {

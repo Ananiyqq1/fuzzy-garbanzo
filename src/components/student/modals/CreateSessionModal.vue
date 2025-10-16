@@ -23,8 +23,6 @@
             required
           />
         </div>
-
-        
       </div>
 
       <div class="grid">
@@ -37,60 +35,10 @@
           <label class="label" for="session-time">Time</label>
           <input id="session-time" v-model="form.time" type="time" required />
         </div>
-
-        <div class="field">
-          <label class="label" for="session-mode">Session Mode</label>
-          <select id="session-mode" v-model="form.mode" required>
-            <option value="" disabled>Select mode</option>
-            <option value="virtual">Virtual Session</option>
-            <option value="in-person">In-person Session</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="grid">
-        <div class="field">
-          <label class="label" for="session-duration">Duration (hours)</label>
-          <input
-            id="session-duration"
-            v-model.number="form.duration"
-            type="number"
-            min="1"
-            max="6"
-            step="0.5"
-            placeholder="2"
-            required
-          />
-        </div>
-
-        <div class="field">
-          <label class="label" for="session-capacity">Capacity</label>
-          <input
-            id="session-capacity"
-            v-model.number="form.capacity"
-            type="number"
-            min="1"
-            max="50"
-            step="1"
-            placeholder="10"
-            required
-          />
-        </div>
-
-        <div class="field">
-          <label class="label" for="session-platform">Platform / Location</label>
-          <input
-            id="session-platform"
-            v-model="form.platform"
-            type="text"
-            placeholder="e.g., Zoom, Teams, Room 201"
-            required
-          />
-        </div>
       </div>
 
       <div class="field">
-        <label class="label" for="session-description">Session Overview</label>
+        <label class="label" for="session-description">Session Description</label>
         <textarea
           id="session-description"
           v-model="form.description"
@@ -101,10 +49,6 @@
       </div>
 
       <div class="form-footer">
-        <label class="checkbox">
-          <input type="checkbox" v-model="form.notify" />
-          <span>Notify my study group about this session</span>
-        </label>
         <div class="actions">
           <AppButton type="button" variant="secondary" @click="handleClose">Cancel</AppButton>
           <AppButton type="submit">Create Session</AppButton>
@@ -126,12 +70,7 @@ const form = reactive({
   topic: '',
   date: '',
   time: '',
-  mode: 'virtual',
-  duration: 2,
-  capacity: 10,
-  platform: '',
   description: '',
-  notify: true,
 })
 
 function handleClose() {

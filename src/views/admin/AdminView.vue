@@ -129,6 +129,11 @@ const navMenuItems = computed(() => [
     icon: 'fas fa-users'
   },
   {
+    name: 'Insights',
+    path: '/admin/insights',
+    icon: 'fas fa-lightbulb'
+  },
+  {
     name: 'Analytics',
     path: '/admin/analytics',
     icon: 'fas fa-chart-line'

@@ -20,6 +20,7 @@ import UserManagement from '../components/admin/UserManagement.vue'
 import Analytics from '../components/admin/Analytics.vue'
 import Settings from '../components/admin/Settings.vue'
 import AdminProfile from '../components/admin/AdminProfile.vue'
+import AdminInsights from '../components/admin/AdminInsights.vue'
 import Room from '@/components/student/Room.vue';
 
 const routes = [
@@ -80,6 +81,7 @@ const routes = [
       { path: 'topics', component: TopicManagement, name: "Topics" },
       { path: 'users', component: UserManagement, name: "Users" },
       { path: 'analytics', component: Analytics, name: "Analytics" },
+      { path: 'insights', component: AdminInsights, name: "AdminInsights" },
       { path: 'settings', component: Settings, name: "Settings" },
       { path: 'profile', component: AdminProfile, name: "AdminProfile" },
     ],

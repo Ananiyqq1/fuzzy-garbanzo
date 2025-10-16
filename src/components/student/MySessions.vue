@@ -38,11 +38,20 @@
                 <h3>{{ session.title }}</h3>
                 <div class="session-meta">
                   <i class="fas fa-calendar-alt"></i>
-                  <span>{{ session.datetime }}</span>
+                  <span>
+                    <template v-if="session.status === 'Completed'">
+                      {{ formatSessionDuration(session) }}
+                    </template>
+                    <template v-else>
+                      {{ session.datetime }}
+                    </template>
+                  </span>
                 </div>
-                <div class="session-meta">
-                  <i class="fas fa-video"></i>
-                  <span>{{ session.type }}</span>
+                <div class="session-meta owner-meta">
+                  <span class="meta-label">Owner</span>
+                  <div class="owner-badge">
+                    {{ formatParticipantLabel(session.host) }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -68,9 +77,6 @@
             <div class="session-actions">
               <AppButton size="small" @click="handlePrimaryAction(session)">
                 {{ getPrimaryActionText(session) }}
-              </AppButton>
-              <AppButton size="small" variant="secondary" @click="openDetails(session)">
-                Details
               </AppButton>
             </div>
           </template>
@@ -145,7 +151,6 @@ interface CreateSessionForm {
   title: string;
   date?: string;
   time?: string;
-  mode: string;
   description: string;
 }
 
@@ -236,6 +241,7 @@ const student: StudentState = reactive({
         { name: 'Session Recording.mp4', type: 'video', action: 'Watch' },
         { name: 'Packet Tracer Lab.pdf', type: 'pdf', action: 'Download' },
       ],
+      duration: '2h',
       feedback: { rating: 4, comments: 'Very helpful recap session.', recommend: 'yes' },
     },
     {
@@ -252,6 +258,7 @@ const student: StudentState = reactive({
         { name: 'Practice Problems.pdf', type: 'pdf', action: 'Download' },
         { name: 'Solution Walkthrough.docx', type: 'docx', action: 'Download' },
       ],
+      duration: '2.5h',
       feedback: { rating: 5, comments: 'Excellent explanations and pacing.', recommend: 'yes' },
     },
   ] as StudentSession[]
@@ -287,6 +294,30 @@ onMounted(() => {
 
 const loadSessions = (): void => {
   ui.loading = true;
+};
+
+const formatSessionDuration = (session: StudentSession): string => {
+  if (session.duration) {
+    return session.duration;
+  }
+  const match = session.datetime.match(/(\d{1,2}:\d{2}\s?[AP]M)\s?-\s?(\d{1,2}:\d{2}\s?[AP]M)/i);
+  if (match) {
+    return match[0];
+  }
+  return session.datetime;
+};
+
+const formatParticipantLabel = (host: string): string => {
+  if (!host) return 'Host';
+  const trimmed = host.trim();
+  if (trimmed.includes(' ')) {
+    return trimmed
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part[0]?.toUpperCase())
+      .join('');
+  }
+  return trimmed.slice(0, 2).toUpperCase();
 };
 
 const openDetails = (session: StudentSession): void => {
@@ -347,11 +378,11 @@ const handleCreateSession = (form: CreateSessionForm): void => {
     title: form.title,
     datetime: `${form.date || 'TBD'}${form.time ? ` · ${form.time}` : ''}`,
     startAt: form.date ? new Date(`${form.date}T${form.time || '00:00'}`).toISOString() : new Date().toISOString(),
-    type: form.mode === 'in-person' ? 'In-person Session' : 'Virtual Session',
+    type: 'Virtual Session',
     host: 'You',
     status: 'Upcoming',
     description: form.description,
-    participants: ['You'],
+    participants: [],
     materials: [],
   };
 
@@ -500,6 +531,31 @@ const handleCreateSession = (form: CreateSessionForm): void => {
 .session-meta i {
   width: 16px;
   text-align: center;
+}
+
+.owner-meta {
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.meta-label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.owner-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
 }
 
 .session-body {

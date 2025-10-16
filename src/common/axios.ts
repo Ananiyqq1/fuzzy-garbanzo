@@ -3,8 +3,8 @@ import router from "@/router";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 const api = axios.create({
-  baseURL: "https://hm.barney-host.site",
-  withCredentials: true,
+  baseURL: import.meta.env.VITE_API_BASE_URL || "",
+  withCredentials: false, // Disabled for resource-service compatibility
 });
 
 let isRefreshing = false;
