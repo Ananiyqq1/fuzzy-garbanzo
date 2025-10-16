@@ -3,40 +3,41 @@
     <div class="page-shell">
       <AppContentHeader
         title="Available Study Rooms"
-        subtitle="Quickly jump into rooms that have open seats right now"
+        subtitle="Quickly jump into rooms we think will fit for you"
       />
 
-      <div v-if="availableRooms.length" class="rooms-grid">
+      <div v-if="fetchedRooms.length" class="rooms-grid">
         <div
-          v-for="room in availableRooms"
-          :key="room.id"
+          v-for="room in fetchedRooms"
+          :key="room.name"
           class="room-card"
         >
-          <div class="room-status" :class="getStatusClass(room)">
-            {{ getStatusLabel(room) }}
+          <div class="room-status status-general">
+          Available
           </div>
           <h3 class="room-title">{{ room.name }}</h3>
           <div class="room-capacity">
-            <i :class="room.capacityIcon"></i>
-            <span>{{ room.capacityText }}</span>
+            <i class="fas fa-users"></i>
+            <span>{{ room.memberCount }} {{room.memberCount>1?'members':'member'}}</span>
           </div>
           <div class="room-features">
-            <span
-              v-for="feature in room.features"
-              :key="feature"
+            <span 
               class="feature-tag"
             >
-              {{ feature }}
+              {{ room.CourseCode }}
+            </span>
+            <span  
+              class="feature-tag"
+            >
+              {{ room.topicName }}
             </span>
           </div>
           <div class="room-actions">
-            <!-- <AppButton
-              size="small"
-              :disabled="room.primaryDisabled"
+            <AppButton
+              size="small" 
               @click="handlePrimaryAction(room)"
-            >
-              {{ room.primaryAction }}
-            </AppButton> -->
+            > Join Room
+            </AppButton>
           </div>
         </div>
       </div>
@@ -130,14 +131,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import AppButton from '../common/AppButton.vue';
 import AppCard from '../common/AppCard.vue';
 import AppContentHeader from '../common/AppContentHeader.vue';
 import { studentRooms } from '../../data/studentRooms';
 import { studentResources } from '../../data/studentResources';
 import { studentPreferenceFilters } from '../../data/studentPreferences';
-import type { StudentResource, StudentRoom } from '../../types/student';
+import { mapToStudentRoom, type StudentResource, type StudentRoom } from '../../types/student';
+import getRoomSuggestions from './api/GetSuggestedRooms';
 
 interface TopContributor {
   id: number;
@@ -147,10 +149,17 @@ interface TopContributor {
   totalPoints: number;
   avatar: string;
 }
-
-const availableRooms = computed<StudentRoom[]>(() =>
-  studentRooms.filter((room) => room.status === 'available')
-);
+var fetchedRooms=ref<Array<StudentRoom>>([])
+onMounted(async()=>{
+  var res=await getRoomSuggestions(["Object Oriented Programming","Artificial Intelligence"])
+  if(res.status==200&&res.data!=null){
+    fetchedRooms.value=res.data.map(mapToStudentRoom) 
+  }
+})
+// const availableRooms = computed<StudentRoom[]>(
+//   // () =>
+//   // studentRooms.filter((room) => room.status === 'available')
+// );
 
 type StudyRoomCategory =
   | 'programming'
@@ -222,45 +231,45 @@ const formatUpdatedDate = (isoDate: string): string => {
   return updatedFormatter.format(new Date(isoDate));
 };
 
-const determineRoomCategory = (room: StudentRoom): StudyRoomCategory | 'general' => {
-  const normalizedFeatures = room.features.map((feature) => feature.toLowerCase());
-  for (const [category, keywords] of Object.entries(categoryKeywords)) {
-    if (
-      keywords.some((keyword) =>
-        normalizedFeatures.some((feature) => feature.includes(keyword))
-      )
-    ) {
-      return category as StudyRoomCategory;
-    }
-  }
-  return 'general';
-};
+// const determineRoomCategory = (room: StudentRoom): StudyRoomCategory | 'general' => {
+//   const normalizedFeatures = room.features.map((feature) => feature.toLowerCase());
+//   for (const [category, keywords] of Object.entries(categoryKeywords)) {
+//     if (
+//       keywords.some((keyword) =>
+//         normalizedFeatures.some((feature) => feature.includes(keyword))
+//       )
+//     ) {
+//       return category as StudyRoomCategory;
+//     }
+//   }
+//   return 'general';
+// };
 
-const getStatusClass = (room: StudentRoom): string => {
-  const category = determineRoomCategory(room);
-  return category === 'general' ? 'status-general' : `status-${category}`;
-};
+// const getStatusClass = (room: StudentRoom): string => {
+//   const category = determineRoomCategory(room);
+//   return category === 'general' ? 'status-general' : `status-${category}`;
+// };
 
-const getStatusLabel = (room: StudentRoom): string => {
-  const category = determineRoomCategory(room);
-  if (category === 'general') {
-    return 'General Study Room';
-  }
-  return preferenceLabelByCategory[category] || 'General Study Room';
-};
+// const getStatusLabel = (room: StudentRoom): string => {
+//   const category = determineRoomCategory(room);
+//   if (category === 'general') {
+//     return 'General Study Room';
+//   }
+//   return preferenceLabelByCategory[category] || 'General Study Room';
+// };
 
 const handlePrimaryAction = (room: StudentRoom): void => {
-  if (room.primaryDisabled) {
-    console.log(`Cannot ${room.primaryAction} - room is ${room.status}`);
-    return;
-  }
+  // if (room.primaryDisabled) {
+  //   console.log(`Cannot ${room.primaryAction} - room is ${room.status}`);
+  //   return;
+  // }
 
-  if (room.primaryAction.toLowerCase().includes('chat')) {
-    console.log(`Opening chat for ${room.name}`);
-    return;
-  }
+  // if (room.primaryAction.toLowerCase().includes('chat')) {
+  //   console.log(`Opening chat for ${room.name}`);
+  //   return;
+  // }
 
-  console.log(`${room.primaryAction}: ${room.name}`);
+  // console.log(`${room.primaryAction}: ${room.name}`);
 };
 </script>
 
@@ -321,7 +330,7 @@ const handlePrimaryAction = (room: StudentRoom): void => {
 }
 
 .status-general {
-  background: linear-gradient(135deg, #94a3b8, #64748b);
+  background: linear-gradient(135deg, #063302, #0c2505);
   color: #fff;
 }
 

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Academic Summary Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2em;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin-top: 1em;
+        }
+
+        button {
+            padding: 0.5em 1em;
+            margin-top: 1em;
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 1em;
+            white-space: pre-wrap;
+        }
+        #markdown-output {
+    font-family: 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    background: #f9f9f9;
+    padding: 1em;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+  }
+  #markdown-output h1, h2, h3 {
+    color: #2c3e50;
+  }
+  #markdown-output ul {
+    padding-left: 1.2em;
+  }
+  #markdown-output strong {
+    color: #34495e;
+  }
+    </style>
+</head>
+
+<body>
+    <h1>Weekly Academic Summary</h1>
+    <p>Click below to fetch logs and generate a summary for the Director.</p>
+    <button onclick="generateSummary()">Generate Summary</button>
+
+    <h2>Raw Logs</h2>
+    <textarea id="logs" readonly></textarea>
+
+    <h2>Executive Summary</h2>
+    <div id="markdown-output">
+
+        <pre id="summary">Waiting for summary...</pre>
+    </div>
+
+    <script>
+        async function generateSummary() {
+            const logsBox = document.getElementById('logs');
+            const summaryBox = document.getElementById('summary');
+
+            try {
+                // Step 1: Fetch logs from your backend
+                const logsResponse = await fetch('http://localhost:5102/posts/weekly'); // Replace with your actual endpoint
+                const logs = await logsResponse.text();
+                logsBox.value = logs;
+
+                // Step 2: Prepare Gemini API payload
+                var system_instruction = "Act as a Senior Academic Analyst. Your task is to analyze raw weekly discussion transcripts and generate a three-part executive summary for a Director. Focus on trends and pain points. Return the output in Markdown. Don't mention to and from.Try to focus on academic discussion than students random chats.";
+                var user_query = "Based on the raw discussion logs provided below, please identify the top 3 most vibrant rooms, the main thematic topics in those rooms, and the most critical academic insights or recurring gaps that require faculty attention.\nLogs: " + logs
+                const payload = {
+                    contents: [{ parts: [{ text: user_query }] }],
+                    // Use system instruction to enforce persona and output quality
+                    systemInstruction: { parts: [{ text: system_instruction }] },
+                };
+
+                // Step 3: Call Gemini API
+                const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': 'AIzaSyD9pJIx1MxWgU70zL6dmJPOJck0n7oSl7k' // Replace with your actual key
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await geminiResponse.json();
+                summaryBox.innerHTML = marked.parse(result.candidates[0].content.parts[0].text) || 'No summary returned.';
+            } catch (error) {
+                summaryBox.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+
+</html>
