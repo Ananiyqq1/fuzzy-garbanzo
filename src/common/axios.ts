@@ -3,8 +3,12 @@ import router from "@/router";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "",
-  withCredentials: false, // Disabled for resource-service compatibility
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8090",
+  withCredentials: false,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 30000, // 30 second timeout
 });
 
 let isRefreshing = false;

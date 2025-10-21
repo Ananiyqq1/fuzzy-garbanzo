@@ -9,7 +9,7 @@
       <div v-if="fetchedRooms.length" class="rooms-grid">
         <div
           v-for="room in fetchedRooms"
-          :key="room.name"
+          :key="room.id"
           class="room-card"
         >
           <div class="room-status status-general">
@@ -35,7 +35,7 @@
           <div class="room-actions">
             <AppButton
               size="small" 
-              @click="handlePrimaryAction(room)"
+              @click="handleJoinRoom(room)"
             > Join Room
             </AppButton>
           </div>
@@ -46,61 +46,67 @@
         <div class="empty-state-card">
           <i class="fas fa-smile"></i>
           <h3>No rooms are open right now</h3>
-          <p>Check back soon to catch the next available study session.</p>
+          <p>Check back soon to catch the next available study session</p>
         </div>
       </div>
 
-      <section class="books-section" v-if="bookRecommendations.length">
+      <section class="books-section" >
         <AppContentHeader
           title="Recommended Documents"
-          subtitle="Build your library with the top course books in rotation."
+          subtitle="A bespoke collection of documents, crafted to match your needs"
         />
 
-        <div class="books-grid">
+        <div class="books-grid" v-if="bookRecommendations.length">
           <div
             v-for="resource in bookRecommendations"
             :key="resource.id"
-            class="resource-card"
-            :data-type="resource.type"
+            class="resource-card" 
           >
             <div class="resource-header">
               <div class="resource-icon">
-                <i :class="resource.metaIcon"></i>
+                <i class="fas fa-calendar"></i>
               </div>
-              <div class="resource-title">{{ resource.title }}</div>
+              <div class="resource-title">{{ resource.docTitle }}</div>
             </div>
             <div class="resource-meta">
               <span>
                 <i class="fas fa-book"></i>
-                {{ resource.course }}
+                {{ resource.topicName }}
               </span>
-              <span v-if="resource.updatedAt">
+              <span>
                 <i class="far fa-calendar-alt"></i>
-                {{ formatUpdatedDate(resource.updatedAt) }}
+                {{ formatUpdatedDate(resource.dateUploaded) }}
               </span>
-              <span v-else>
+              <!-- <span v-else>
                 <i :class="resource.metaIcon"></i>
                 {{ resource.metaText }}
-              </span>
+              </span> -->
             </div>
             <div class="resource-actions">
-              <!-- <AppButton
+              <AppButton
+              v-on:click="downloadFile(resource.docKey)"
                 size="small"
                 class="resource-action-button"
-                type="button"
-                @click="handleResourceAction(resource)"
+                type="button" 
               >
-                {{ resource.actionLabel }}
-              </AppButton> -->
+                Download
+              </AppButton>
             </div>
           </div>
         </div>
+        <div v-else class="empty-state">
+        <div class="empty-state-card">
+          <i class="fas fa-smile"></i>
+          <h3>Loading Documents curated for you</h3>
+          <!-- <p>Check back soon to catch the next available study session</p> -->
+        </div>
+      </div>
       </section>
 
       <section class="contributors-section" v-if="topContributors.length">
         <AppContentHeader
           title="Top Peers on HiLCoE Knowledge Hub"
-          subtitle="Recognizing this week's most engaged student contributors."
+          subtitle="Recognizing this week's most engaged student contributors"
         />
 
         <div class="contributors-grid">
@@ -134,13 +140,16 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import AppButton from '../common/AppButton.vue';
 import AppCard from '../common/AppCard.vue';
-import AppContentHeader from '../common/AppContentHeader.vue';
-import { studentRooms } from '../../data/studentRooms';
-import { studentResources } from '../../data/studentResources';
+import AppContentHeader from '../common/AppContentHeader.vue'; 
 import { studentPreferenceFilters } from '../../data/studentPreferences';
-import { mapToStudentRoom, type StudentResource, type StudentRoom } from '../../types/student';
+import {type Room, Resource, mapToRoom, mapToResource } from '../../types/student';
 import getRoomSuggestions from './api/GetSuggestedRooms';
-
+import getDocSuggestions from './api/GetSuggestedDocs';   
+import { useSignalR } from '@/common/useSignalR';
+import joinRoom from './api/JoinRoom';
+import router from '@/router';
+import getDocLink from './api/GetDocLink';
+import { useAuthStore } from '@/stores/useAuthStore';
 interface TopContributor {
   id: number;
   name: string;
@@ -149,18 +158,22 @@ interface TopContributor {
   totalPoints: number;
   avatar: string;
 }
-var fetchedRooms=ref<Array<StudentRoom>>([])
-onMounted(async()=>{
-  var res=await getRoomSuggestions(["Object Oriented Programming","Artificial Intelligence"])
-  if(res.status==200&&res.data!=null){
-    fetchedRooms.value=res.data.map(mapToStudentRoom) 
-  }
-})
-// const availableRooms = computed<StudentRoom[]>(
-//   // () =>
-//   // studentRooms.filter((room) => room.status === 'available')
-// );
+const {user}=useAuthStore();
+const {connect} = useSignalR();
+var fetchedRooms=ref<Array<Room>>([])
+var bookRecommendations=ref<Array<Resource>>([])
 
+onMounted(async()=>{
+  await connect()
+  var roomsResponse=await getRoomSuggestions(user?.user_id as string,user?.interests as Array<string>)
+  if(roomsResponse.status==200&&roomsResponse.data!=null){
+    fetchedRooms.value=roomsResponse.data.map(mapToRoom)
+  }
+  var docResponse=await getDocSuggestions(user?.interests as Array<string>)
+  if(docResponse.status==200&&docResponse.data!=null){
+    bookRecommendations.value=docResponse.data.map(mapToResource) 
+  }
+})  
 type StudyRoomCategory =
   | 'programming'
   | 'databases'
@@ -178,26 +191,11 @@ const categoryKeywords: Record<StudyRoomCategory, string[]> = {
   specialized: ['artificial', 'ai', 'compiler', 'graphics', 'retrieval']
 };
 
-const preferenceLabelByCategory = studentPreferenceFilters.reduce<Record<string, string>>(
-  (acc, filter) => {
-    acc[filter.value] = filter.label;
-    return acc;
-  },
-  {}
-);
-
-const bookRecommendations = computed<StudentResource[]>(() =>
-  studentResources.filter((resource) => resource.type === 'books')
-);
-
-const handleResourceAction = (resource: StudentResource): void => {
-  console.log(`${resource.actionLabel}: ${resource.title}`);
-};
 
 const topContributors: TopContributor[] = [
   {
     id: 1,
-    name: 'Moa Habtamu',
+    name: 'Moa Fuad',
     role: 'Peer Mentor',
     score: 5,
     totalPoints: 1320,
@@ -226,50 +224,34 @@ const updatedFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   year: 'numeric'
 });
+  async function downloadFile(fileKey: string) { 
+    try{ 
+    var link=await getDocLink(fileKey); 
+      window.open(link, '_blank');
+    }
+    catch(error){
+      console.error("Error downloading file:", error);
+    }
+  }
 
 const formatUpdatedDate = (isoDate: string): string => {
   return updatedFormatter.format(new Date(isoDate));
 };
+ 
+const handleJoinRoom = async(room: Room): Promise<void> => { 
+try{
+  const res=await joinRoom({
+  "roomId":room.id,
+  "memberId":user?.user_id as string
+  })
+  if(res.status==204){
+    router.push(`/room/${room.id}`)
+  }
 
-// const determineRoomCategory = (room: StudentRoom): StudyRoomCategory | 'general' => {
-//   const normalizedFeatures = room.features.map((feature) => feature.toLowerCase());
-//   for (const [category, keywords] of Object.entries(categoryKeywords)) {
-//     if (
-//       keywords.some((keyword) =>
-//         normalizedFeatures.some((feature) => feature.includes(keyword))
-//       )
-//     ) {
-//       return category as StudyRoomCategory;
-//     }
-//   }
-//   return 'general';
-// };
+}
+catch(e){
 
-// const getStatusClass = (room: StudentRoom): string => {
-//   const category = determineRoomCategory(room);
-//   return category === 'general' ? 'status-general' : `status-${category}`;
-// };
-
-// const getStatusLabel = (room: StudentRoom): string => {
-//   const category = determineRoomCategory(room);
-//   if (category === 'general') {
-//     return 'General Study Room';
-//   }
-//   return preferenceLabelByCategory[category] || 'General Study Room';
-// };
-
-const handlePrimaryAction = (room: StudentRoom): void => {
-  // if (room.primaryDisabled) {
-  //   console.log(`Cannot ${room.primaryAction} - room is ${room.status}`);
-  //   return;
-  // }
-
-  // if (room.primaryAction.toLowerCase().includes('chat')) {
-  //   console.log(`Opening chat for ${room.name}`);
-  //   return;
-  // }
-
-  // console.log(`${room.primaryAction}: ${room.name}`);
+} 
 };
 </script>
 
@@ -330,7 +312,7 @@ const handlePrimaryAction = (room: StudentRoom): void => {
 }
 
 .status-general {
-  background: linear-gradient(135deg, #063302, #0c2505);
+  background: linear-gradient(135deg, #11ff00, #23a003);
   color: #fff;
 }
 

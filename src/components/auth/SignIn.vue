@@ -90,30 +90,21 @@ function emitSwitchToSignUp() {
 async function submit() {
   if (!isFormValid.value || isLoading.value) return
 
-  // Demo-only flow: bypass backend login and navigate directly.
-  // isLoading.value = true
+  isLoading.value = true
   try {
-    auth.user = {
-      user_id: 'demo',
-      username: email.value,
-      name: selectedRole.value === 'admin' ? 'Admin User' : 'Student User',
-      institute_email: email.value,
-      email: email.value,
-      overall_score: 0,
-      profile_photo: '',
-      online_status: true,
-      bio: '',
-      roles: [selectedRole.value === 'admin' ? 'admin' : 'peer'],
-      interests: [],
-      created_at: new Date().toISOString()
-    }
-    if (selectedRole.value === 'admin') {
+    // Use mock authentication from store
+    await auth.login(email.value, password.value)
+    
+    // Navigate based on user role
+    if (auth.user?.roles.includes('admin')) {
       router.push('/admin')
     } else {
       router.push('/')
     }
   } catch (error) {
-    console.error('Navigation error:', error)
+    console.error('Login failed:', error)
+    // Show error to user
+    alert(error.message || 'Login failed. Please check your credentials.')
   } finally {
     isLoading.value = false
   }

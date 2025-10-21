@@ -1,51 +1,36 @@
 <template>
   <div class="resources">
     <div class="page-shell">
-      <AppLoading
-        :show="ui.loading"
-        size="large"
-        :duration="3000"
-        @finished="ui.loading = false"
-      />
+      <AppLoading :show="ui.loading" size="large" :duration="3000" @finished="ui.loading = false" />
 
       <div class="header-row">
-        <AppContentHeader
-          title="Learning Resources"
-          subtitle="Access study materials, lecture notes, and other resources"
-        />
-        <!-- <AppButton class="upload-button" size="small" icon="fas fa-upload" @click="openUploadModal">
-          Upload Resource
-        </AppButton> -->
+        <AppContentHeader title="Learning Resources"
+          subtitle="Access study materials, lecture notes, and other resources" /> 
       </div>
 
-      <AppTabs v-model="activeFilter" :tabs="filterTabs" />
+      <AppTabs v-model="activeCategory" :tabs="filterTabs" />
 
       <div class="resources-grid">
-        <div
-          v-for="resource in filteredResources"
-          :key="resource.id"
-          class="resource-card"
-          :data-type="resource.type"
-        >
+        <div v-for="resource in fetchedDocs" :key="resource.id" class="resource-card">
           <div class="resource-header">
             <div class="resource-icon">
-              <i :class="getResourceIcon(resource.type)"></i>
+              <i class='fas fa-book'></i>
             </div>
-            <div class="resource-title">{{ resource.title }}</div>
+            <div class="resource-title">{{ resource.docTitle }}</div>
           </div>
           <div class="resource-meta">
             <span>
               <i class="fas fa-book"></i>
-              {{ resource.course }}
+              {{ resource.topicName }}
             </span>
-            <span v-if="resource.updatedAt">
+            <span>
               <i class="far fa-calendar-alt"></i>
-              {{ formatUpdatedDate(resource.updatedAt) }}
+              {{ formatUpdatedDate(resource.dateUploaded) }}
             </span>
-            <span v-else>
+            <!-- <span v-else>
               <i :class="resource.metaIcon"></i>
               {{ resource.metaText }}
-            </span>
+            </span> -->
           </div>
           <div class="resource-actions">
             <!-- <AppButton
@@ -54,69 +39,44 @@
               @click="openPreview(resource)"
             >
               Preview
-            </AppButton> -->
-            <AppButton size="small" @click="handleResourceAction(resource)">
-              {{ resource.actionLabel }}
+            </AppButton>-->
+            <AppButton size="small" v-on:click="downloadFile(resource.docKey)">
+              Download
             </AppButton>
           </div>
         </div>
-      </div>
-
-      <ResourcePreviewModal
-        v-if="ui.modals.preview"
-        :resource="ui.modals.preview"
-        @close="ui.modals.preview = null"
-        @download="handleResourceDownload"
-      />
-
-      <UploadResourceModal
-        v-if="ui.modals.upload"
-        :initial-value="{}"
-        @close="ui.modals.upload = false"
-        @submit="submitUpload"
-      />
+      </div> 
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, computed, ref } from 'vue';
+import { onMounted, reactive, computed, ref, watch } from 'vue';
 import AppButton from '../common/AppButton.vue';
-import AppCard from '../common/AppCard.vue';
 import AppContentHeader from '../common/AppContentHeader.vue';
 import AppLoading from '../common/AppLoading.vue';
 import AppTabs from '../common/AppTabs.vue';
-import { studentResources } from '../../data/studentResources';
-import type { StudentResource, ResourceType } from '../../types/student';
-import ResourcePreviewModal from './modals/ResourcePreviewModal.vue';
-import UploadResourceModal from './modals/UploadResourceModal.vue';
+import { mapToResource, type Resource, type ResourceType } from '../../types/student';
+import loadDocuments from './api/GetDocs';
+import getDocLink from './api/GetDocLink';
 
 interface UiState {
   loading: boolean;
   notify: (msg: string, type?: string) => void;
   modals: {
-    preview: StudentResource & { typeLabel: string } | null;
+    preview: Resource & { typeLabel: string } | null;
     upload: boolean;
   };
 }
-
-type PreferenceCategory =
-  | 'all'
-  | 'programming'
-  | 'databases'
-  | 'systems'
-  | 'web-mobile'
-  | 'ict-research'
-  | 'specialized';
-
+ 
 interface TabItem {
-  value: PreferenceCategory;
   label: string;
   icon?: string;
+  category: string;
 }
 
 interface StudentState {
-  resources: StudentResource[];
+  resources: Resource[];
 }
 
 interface UploadForm {
@@ -130,48 +90,20 @@ const ui: UiState = reactive({
     preview: null,
     upload: false,
   },
-});
+}); 
 
-const student: StudentState = reactive({
-  resources: studentResources.map((resource) => ({ ...resource })),
-});
-
-const activeFilter = ref<PreferenceCategory>('all');
 
 const filterTabs: TabItem[] = [
-  { value: 'all', label: 'All Resources', icon: 'fas fa-layer-group' },
-  { value: 'programming', label: 'Programming', icon: 'fas fa-code' },
-  { value: 'databases', label: 'Databases', icon: 'fas fa-database' },
-  { value: 'systems', label: 'Systems', icon: 'fas fa-network-wired' },
-  { value: 'web-mobile', label: 'Web & Mobile', icon: 'fas fa-globe' },
-  { value: 'ict-research', label: 'ICT & Research', icon: 'fas fa-chart-line' },
-  { value: 'specialized', label: 'Specialized', icon: 'fas fa-brain' },
+  { label: 'All Resources', icon: 'fas fa-layer-group', category: "-1" },
+  { label: 'Programming', icon: 'fas fa-code', category: "0" },
+  { label: 'Databases', icon: 'fas fa-database', category: '2' },
+  { label: 'Systems', icon: 'fas fa-network-wired', category: '1' },
+  { label: 'Web & Mobile', icon: 'fas fa-globe', category: '3' },
+  { label: 'ICT & Research', icon: 'fas fa-chart-line', category: '5' },
+  { label: 'Specialized', icon: 'fas fa-brain', category: '4' },
 ];
-
-const categoryKeywords: Record<Exclude<PreferenceCategory, 'all'>, string[]> = {
-  programming: ['program', 'algorithm', 'software', 'code'],
-  databases: ['database', 'data', 'sql'],
-  systems: ['system', 'network', 'unix', 'assembly'],
-  'web-mobile': ['web', 'mobile'],
-  'ict-research': ['ict', 'project', 'research'],
-  specialized: ['artificial', 'ai', 'compiler', 'graphics', 'retrieval'],
-};
-
-const filteredResources = computed<StudentResource[]>(() => {
-  if (activeFilter.value === 'all') {
-    return student.resources;
-  }
-
-  const keywords = categoryKeywords[activeFilter.value];
-  if (!keywords) {
-    return student.resources;
-  }
-
-  return student.resources.filter((resource) => {
-    const haystack = `${resource.title} ${resource.description} ${resource.course}`.toLowerCase();
-    return keywords.some((keyword) => haystack.includes(keyword));
-  });
-});
+const activeCategory = ref<string>(filterTabs[0].category);
+ 
 
 const updatedFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -182,18 +114,39 @@ const updatedFormatter = new Intl.DateTimeFormat('en-US', {
 const formatUpdatedDate = (isoDate: string): string => {
   return updatedFormatter.format(new Date(isoDate));
 };
+const fetchedDocs = ref<Array<Resource>>([])
+async function downloadFile(fileKey: string) {
+  try {
+    var link = await getDocLink(fileKey);
+    // console.log("Download link:", link);
+    window.open(link, '_blank');
+  }
+  catch (error) {
+    console.error("Error downloading file:", error);
+  }
+}
 
-onMounted(() => {
+onMounted(async () => {
   loadResources();
+  var res = await loadDocuments(activeCategory.value);
+  if (res.status == 200 && res.data != null) {
+    fetchedDocs.value = res.data.map(mapToResource)
+  }
+});
+watch(activeCategory, async (cat) => {
+  const res = await loadDocuments(cat);
+  if (res.status === 200 && res.data != null) {
+    fetchedDocs.value = res.data.map(mapToResource);
+  }
 });
 
 const loadResources = (): void => {
   ui.loading = true;
 };
 
-const setActiveFilter = (filter: PreferenceCategory): void => {
-  activeFilter.value = filter;
-};
+// const setActiveFilter = (filter: TabItem): void => {
+//   activeFilter.value = filter;
+// };
 
 const getResourceIcon = (type: ResourceType): string => {
   const icons: Record<ResourceType | 'videos', string> = {
@@ -205,19 +158,19 @@ const getResourceIcon = (type: ResourceType): string => {
   return icons[type] || 'fas fa-file';
 };
 
-const handleResourceAction = (resource: StudentResource): void => {
-  ui.notify(`${resource.actionLabel}: ${resource.title}`);
+const handleResourceAction = (resource: Resource): void => {
+  // ui.notify(`${resource.actionLabel}: ${resource.title}`);
 };
 
-const openPreview = (resource: StudentResource): void => {
-  ui.modals.preview = {
-    ...resource,
-    typeLabel: getTypeLabel(resource.type),
-  };
+const openPreview = (resource: Resource): void => {
+  // ui.modals.preview = {
+  //   ...resource,
+  //   // typeLabel: getTypeLabel(resource.type),
+  // };
 };
 
-const handleResourceDownload = (resource: StudentResource): void => {
-  ui.notify(`Downloading: ${resource.title}`);
+const handleResourceDownload = (resource: Resource): void => {
+  // ui.notify(`Downloading: ${resource.title}`);
   ui.modals.preview = null;
 };
 

@@ -13,7 +13,7 @@ export interface CoursePayload {
   Name: string
   Description: string
   CreditHour: number
-  Category: string
+  Category: number
 }
 
 export async function fetchCourses() {

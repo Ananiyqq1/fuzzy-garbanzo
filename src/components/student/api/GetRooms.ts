@@ -1,5 +1,5 @@
 import api from "@/common/axios";
 
-export default async function getRooms() {
-return await api.get('/api/resource/rooms')
+export default async function loadRooms(explore: boolean, userId: string) {
+  return await api.get(`/rooms?explore=${explore}&memberId=${userId}`)
 }

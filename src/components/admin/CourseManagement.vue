@@ -67,14 +67,24 @@
         />
       </div>
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-      <template >
-        <AppButton
-          icon="fas fa-save"
-          :disabled="isSaving"
-          @click="submitCourse"
-        >
-          {{ editingCourseCode ? 'Update Course' : 'Create Course' }}
-        </AppButton>
+      <template #footer>
+        <div class="form-actions">
+          <AppButton
+           
+            :disabled="isSaving"
+            @click="submitCourse"
+          >
+            {{ editingCourseCode ? 'Update Course' : 'Create Course' }}
+          </AppButton>
+          <AppButton
+            v-if="editingCourseCode"
+            variant="secondary"
+           
+            @click="resetForm"
+          >
+            Cancel
+          </AppButton>
+        </div>
       </template>
     </AppFormSection>
 
@@ -85,14 +95,11 @@
     >
       <template #cell-actions="{ row }">
         <div class="table-actions">
-          <button class="icon-button edit" @click="editCourse(row)">
+          <button class="icon-button edit" @click="editCourse(row)" title="Edit course">
             <i class="fas fa-edit"></i>
           </button>
-          <button class="icon-button delete" @click="removeCourse(row)">
+          <button class="icon-button delete" @click="removeCourse(row)" title="Delete course">
             <i class="fas fa-trash"></i>
-          </button>
-          <button class="icon-button view" @click="viewCourse(row)">
-            <i class="fas fa-eye"></i>
           </button>
         </div>
       </template>
@@ -111,22 +118,17 @@ import AppInput from '../common/AppInput.vue'
 import AppSelect from '../common/AppSelect.vue'
 import AppTextarea from '../common/AppTextarea.vue'
 import AppLoading from '../common/AppLoading.vue'
-import {
-  fetchCourses,
-  createCourse,
-  updateCourse,
-  deleteCourse,
-  type CourseResponse
-} from '@/services/adminCourses'
+import { useCoursesStore } from '@/stores/useCoursesStore'
+import type { Course } from '@/data/mockCourses'
 
 
 const categoryOptions = [
-  { value: 'Programming_and_SoftwareDev', numValue: 0, label: 'Programming & Software Dev' },
-  { value: 'Systems_and_Infrastructure', numValue: 1, label: 'Systems & Infrastructure' },
-  { value: 'Databases_and_DataMgmt', numValue: 2, label: 'Databases & Data Mgmt' },
-  { value: 'Web_and_Mobile_Tech', numValue: 3, label: 'Web & Mobile Tech' },
-  { value: 'Specialized_and_EmergingAreas', numValue: 4, label: 'Specialized & Emerging Areas' },
-  { value: 'IT_Management_and_Research', numValue: 5, label: 'IT Management & Research' }
+  { value: 'programming', label: 'Programming & Software Development' },
+  { value: 'databases', label: 'Databases & Data Management' },
+  { value: 'systems', label: 'Systems & Infrastructure' },
+  { value: 'web-mobile', label: 'Web & Mobile Development' },
+  { value: 'ict-research', label: 'ICT Management & Research' },
+  { value: 'specialized', label: 'Specialized & Emerging Areas' }
 ]
 
 const filters = reactive({
@@ -134,8 +136,9 @@ const filters = reactive({
   search: ''
 })
 
-const courses = ref<CourseResponse[]>([])
-const isLoading = ref(false)
+const coursesStore = useCoursesStore()
+const courses = computed(() => coursesStore.allCourses)
+const isLoading = computed(() => coursesStore.isLoading)
 const isSaving = ref(false)
 const errorMessage = ref('')
 const editingCourseCode = ref<string | null>(null)
@@ -148,16 +151,9 @@ const newCourse = reactive({
   description: ''
 })
 
-const getCategoryLabel = (category: string | number) => {
-  // Backend returns numbers (enum values), match by numValue
-  if (typeof category === 'number') {
-    const match = categoryOptions.find((option) => option.numValue === category)
-    return match ? match.label : `Category ${category}`
-  }
-  // Fallback for string values
+const getCategoryLabel = (category: string) => {
   const match = categoryOptions.find((option) => option.value === category)
-  if (match) return match.label
-  return category ? category.replace(/_/g, ' ') : ''
+  return match ? match.label : category
 }
 
 const columns = [
@@ -197,18 +193,14 @@ const resetForm = () => {
 }
                                                                                                                                                                                                                                                                                                                                                                                                                                             
 const loadCourses = async () => {
-  isLoading.value = true
   errorMessage.value = ''
   console.log('Loading courses...')
   try {
-    courses.value = await fetchCourses()
+    await coursesStore.fetchCourses()
     console.log('Courses loaded successfully:', courses.value.length)
   } catch (error: any) {
     console.error('Failed to load courses', error)
-    errorMessage.value = error?.response?.data || error?.message || 'Failed to load courses.'
-  } finally {
-    isLoading.value = false
-    console.log('Loading complete, isLoading set to false')
+    errorMessage.value = error?.message || 'Failed to load courses.'
   }
 }
 
@@ -226,63 +218,52 @@ const submitCourse = async () => {
   }
 
   const payload = {
-    CourseCode: newCourse.code.trim(),
-    Name: newCourse.title.trim(),
-    Description: newCourse.description.trim(),
-    CreditHour: creditHourNumber,
-    Category: newCourse.category
+    courseCode: newCourse.code.trim(),
+    name: newCourse.title.trim(),
+    description: newCourse.description.trim(),
+    creditHour: creditHourNumber,
+    category: newCourse.category as Course['category']
   }
 
   isSaving.value = true
   try {
     if (editingCourseCode.value) {
-      await updateCourse(editingCourseCode.value, payload)
+      await coursesStore.updateCourse(editingCourseCode.value, payload)
     } else {
-      await createCourse(payload)
+      await coursesStore.createCourse(payload)
     }
-    await loadCourses()
     resetForm()
   } catch (error: any) {
     console.error('Failed to save course', error)
-    errorMessage.value = error?.response?.data || 'Failed to save course.'
+    errorMessage.value = error?.message || 'Failed to save course.'
   } finally {
     isSaving.value = false
   }
 }
 
-const editCourse = (course: CourseResponse & { categoryLabel?: string }) => {
+const editCourse = (course: Course & { categoryLabel?: string }) => {
   editingCourseCode.value = course.courseCode
   newCourse.title = course.name
   newCourse.code = course.courseCode
   newCourse.creditHour = String(course.creditHour ?? '')
-  // Convert category number to string value for editing
-  if (typeof course.category === 'number') {
-    const match = categoryOptions.find((option) => option.numValue === course.category)
-    newCourse.category = match?.value || ''
-  } else {
-    newCourse.category = course.category
-  }
+  newCourse.category = course.category
   newCourse.description = course.description
   errorMessage.value = ''
 }
 
-const removeCourse = async (course: CourseResponse) => {
+const removeCourse = async (course: Course) => {
   isSaving.value = true
   errorMessage.value = ''
   try {
-    await deleteCourse(course.courseCode)
-    await loadCourses()
+    await coursesStore.deleteCourse(course.courseCode)
   } catch (error: any) {
     console.error('Failed to delete course', error)
-    errorMessage.value = error?.response?.data || 'Failed to delete course.'
+    errorMessage.value = error?.message || 'Failed to delete course.'
   } finally {
     isSaving.value = false
   }
 }
 
-const viewCourse = (course: CourseResponse) => {
-  console.log('View course', course)
-}
 
 onMounted(() => {
   loadCourses()
@@ -324,45 +305,63 @@ onMounted(() => {
   grid-column: 1 / -1;
 }
 
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .table-actions {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .icon-button {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
   border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(17, 24, 39, 0.08);
-  color: #4b5563;
+  background: rgba(17, 24, 39, 0.06);
+  color: #6b7280;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.95rem;
 }
 
 .icon-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px -10px rgba(17, 24, 39, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.icon-button:active {
+  transform: translateY(0);
+}
+
+.icon-button.edit {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
 }
 
 .icon-button.edit:hover {
-  background: rgba(37, 99, 235, 0.15);
+  background: rgba(59, 130, 246, 0.2);
   color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.icon-button.delete {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
 }
 
 .icon-button.delete:hover {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.2);
   color: #b91c1c;
-}
-
-.icon-button.view:hover {
-  background: rgba(16, 185, 129, 0.15);
-  color: #047857;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 @media (max-width: 1024px) {

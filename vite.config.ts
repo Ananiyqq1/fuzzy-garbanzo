@@ -15,15 +15,6 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    proxy: {
-      '/courses': {
-        target: 'http://localhost:5138',
-        changeOrigin: true,
-      },
-      '/topics': {
-        target: 'http://localhost:5138',
-        changeOrigin: true,
-      },
-    },
+    cors: true,
   },
 });

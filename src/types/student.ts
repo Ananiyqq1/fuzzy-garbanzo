@@ -1,31 +1,38 @@
 export type StudentStatus = 'available' | 'occupied' | 'full';
 
-export interface StudentRoom { 
-  name: string; 
-  memberCount: number; 
+export interface Room {
+  id: string;
+  name: string;
+  memberCount: number;
   topicName: string[];
-  CourseCode: string; 
+  CourseCode: string;
 }
-export const mapToStudentRoom = (r: any): StudentRoom => {
+export const mapToRoom = (r: any): Room => {
   return {
-    name: r.roomName ,
+    id: r.roomId,
+    name: r.roomName,
     memberCount: Number(r.memberCount),
     topicName: r.topicName,
     CourseCode: r.courseCode
   };
 };
+export const mapToResource = (r: any): Resource => {
+  return {
+    id: r.docId, 
+    docTitle: r.docTitle,
+    dateUploaded: r.uploadDate,
+    topicName: r.topicName,
+    docKey: r.docKey  
+  };
+};
 export type ResourceType = 'lectures' | 'books' | 'papers';
 
-export interface StudentResource {
-  id: number;
-  title: string;
-  type: ResourceType;
-  course: string;
-  metaIcon: string;
-  metaText: string;
-  description: string;
-  actionLabel: string;
-  updatedAt?: string;
+export interface Resource {
+  id: string;
+  dateUploaded: string;
+  docTitle: string;
+  topicName: string
+  docKey: string;
 }
 
 export interface SessionMaterial {
@@ -53,7 +60,6 @@ export interface StudentSession {
   description: string;
   participants: string[];
   materials: SessionMaterial[];
-  duration?: string;
   feedback?: SessionFeedback;
 }
 

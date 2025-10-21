@@ -55,13 +55,21 @@
       </div>
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
       <template #footer>
-        <AppButton
-          icon="fas fa-save"
-          :disabled="isSaving"
-          @click="submitTopic"
-        >
-          {{ editingTopicId ? 'Update Topic' : 'Create Topic' }}
-        </AppButton>
+        <div class="form-actions">
+          <AppButton
+            :disabled="isSaving"
+            @click="submitTopic"
+          >
+            {{ editingTopicId ? 'Update Topic' : 'Create Topic' }}
+          </AppButton>
+          <AppButton
+            v-if="editingTopicId"
+            variant="secondary"
+            @click="resetForm"
+          >
+            Cancel
+          </AppButton>
+        </div>
       </template>
     </AppFormSection>
 
@@ -72,14 +80,11 @@
     >
       <template #cell-actions="{ row }">
         <div class="table-actions">
-          <button class="icon-button edit" @click="editTopic(row)">
+          <button class="icon-button edit" @click="editTopic(row)" title="Edit topic">
             <i class="fas fa-edit"></i>
           </button>
-          <button class="icon-button delete" @click="removeTopic(row)">
+          <button class="icon-button delete" @click="removeTopic(row)" title="Delete topic">
             <i class="fas fa-trash"></i>
-          </button>
-          <button class="icon-button view" @click="viewTopic(row)">
-            <i class="fas fa-eye"></i>
           </button>
         </div>
       </template>
@@ -98,19 +103,23 @@ import AppInput from '../common/AppInput.vue'
 import AppSelect from '../common/AppSelect.vue'
 import AppTextarea from '../common/AppTextarea.vue'
 import AppLoading from '../common/AppLoading.vue'
-import { fetchTopics, createTopic, updateTopic, deleteTopic, type TopicResponse } from '@/services/adminTopics'
-import { fetchCourses, type CourseResponse } from '@/services/adminCourses'
+import { useTopicsStore } from '@/stores/useTopicsStore'
+import { useCoursesStore } from '@/stores/useCoursesStore'
+import type { Topic } from '@/data/mockTopics'
+import type { Course } from '@/data/mockCourses'
 
 
-const courses = ref<CourseResponse[]>([])
-const topics = ref<TopicResponse[]>([])
+const topicsStore = useTopicsStore()
+const coursesStore = useCoursesStore()
+const courses = computed(() => coursesStore.allCourses)
+const topics = computed(() => topicsStore.allTopics)
 
 const filters = reactive({
   course: 'all',
   search: ''
 })
 
-const isLoading = ref(false)
+const isLoading = computed(() => topicsStore.isLoading || coursesStore.isLoading)
 const isSaving = ref(false)
 const errorMessage = ref('')
 const editingTopicId = ref<string | null>(null)
@@ -158,7 +167,7 @@ const filteredTopics = computed(() => {
     })
 })
 
-const rowKey = (row: TopicResponse) => row.topicId
+const rowKey = (row: Topic) => row.topicId
 
 const resetForm = () => {
   editingTopicId.value = null
@@ -170,7 +179,7 @@ const resetForm = () => {
 
 const loadTopics = async () => {
   try {
-    topics.value = await fetchTopics()
+    await topicsStore.fetchTopics()
     console.log('Topics loaded:', topics.value.length)
   } catch (error: any) {
     console.error('Failed to load topics', error)
@@ -180,7 +189,7 @@ const loadTopics = async () => {
 
 const loadCourses = async () => {
   try {
-    courses.value = await fetchCourses()
+    await coursesStore.fetchCourses()
     console.log('Courses loaded for topics:', courses.value.length)
   } catch (error: any) {
     console.error('Failed to load courses for topics', error)
@@ -189,15 +198,12 @@ const loadCourses = async () => {
 }
 
 const loadData = async () => {
-  isLoading.value = true
   errorMessage.value = ''
   try {
     await Promise.all([loadCourses(), loadTopics()])
   } catch (error: any) {
     console.error('Failed to load data', error)
-    errorMessage.value = error?.response?.data || error?.message || 'Failed to load data.'
-  } finally {
-    isLoading.value = false
+    errorMessage.value = error?.message || 'Failed to load data.'
   }
 }
 
@@ -209,29 +215,28 @@ const submitTopic = async () => {
   }
 
   const payload = {
-    CourseCode: newTopic.course,
-    Name: newTopic.title.trim(),
-    Description: newTopic.description.trim()
+    courseCode: newTopic.course,
+    name: newTopic.title.trim(),
+    description: newTopic.description.trim()
   }
 
   isSaving.value = true
   try {
     if (editingTopicId.value) {
-      await updateTopic(editingTopicId.value, payload)
+      await topicsStore.updateTopic(editingTopicId.value, payload)
     } else {
-      await createTopic(payload)
+      await topicsStore.createTopic(payload)
     }
-    await loadTopics()
     resetForm()
   } catch (error: any) {
     console.error('Failed to save topic', error)
-    errorMessage.value = error?.response?.data || 'Failed to save topic.'
+    errorMessage.value = error?.message || 'Failed to save topic.'
   } finally {
     isSaving.value = false
   }
 }
 
-const editTopic = (topic: TopicResponse & { courseLabel?: string }) => {
+const editTopic = (topic: Topic & { courseLabel?: string }) => {
   editingTopicId.value = topic.topicId
   newTopic.title = topic.name
   newTopic.course = topic.courseCode
@@ -239,23 +244,19 @@ const editTopic = (topic: TopicResponse & { courseLabel?: string }) => {
   errorMessage.value = ''
 }
 
-const removeTopic = async (topic: TopicResponse) => {
+const removeTopic = async (topic: Topic) => {
   isSaving.value = true
   errorMessage.value = ''
   try {
-    await deleteTopic(topic.topicId)
-    await loadTopics()
+    await topicsStore.deleteTopic(topic.topicId)
   } catch (error: any) {
     console.error('Failed to delete topic', error)
-    errorMessage.value = error?.response?.data || 'Failed to delete topic.'
+    errorMessage.value = error?.message || 'Failed to delete topic.'
   } finally {
     isSaving.value = false
   }
 }
 
-const viewTopic = (topic: TopicResponse) => {
-  console.log('View topic', topic)
-}
 
 onMounted(() => {
   loadData()
@@ -297,45 +298,63 @@ onMounted(() => {
   margin-top: 0.5rem;
 }
 
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .table-actions {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .icon-button {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
   border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(17, 24, 39, 0.08);
-  color: #4b5563;
+  background: rgba(17, 24, 39, 0.06);
+  color: #6b7280;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.95rem;
 }
 
 .icon-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px -10px rgba(17, 24, 39, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.icon-button:active {
+  transform: translateY(0);
+}
+
+.icon-button.edit {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
 }
 
 .icon-button.edit:hover {
-  background: rgba(37, 99, 235, 0.15);
+  background: rgba(59, 130, 246, 0.2);
   color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.icon-button.delete {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
 }
 
 .icon-button.delete:hover {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.2);
   color: #b91c1c;
-}
-
-.icon-button.view:hover {
-  background: rgba(16, 185, 129, 0.15);
-  color: #047857;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 @media (max-width: 768px) {

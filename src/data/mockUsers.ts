@@ -1,0 +1,73 @@
+import type { CurrentUser } from '@/stores/useAuthStore'
+
+export const mockUsers: CurrentUser[] = [
+  {
+    user_id: 'admin-001',
+    username: 'admin',
+    name: 'Admin User',
+    institute_email: 'admin@hilcoe.edu',
+    email: 'admin@hilcoe.edu',
+    overall_score: 100,
+    profile_photo: '',
+    online_status: true,
+    bio: 'System Administrator',
+    roles: ['admin'],
+    interests: ['System Administration', 'Education Management'],
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    user_id: 'student-001',
+    username: 'john.doe',
+    name: 'John Doe',
+    institute_email: 'john.doe@hilcoe.edu',
+    email: 'john.doe@example.com',
+    overall_score: 85,
+    profile_photo: '',
+    online_status: true,
+    bio: 'Computer Science student passionate about software development and algorithms.',
+    roles: ['peer'],
+    interests: [
+      'Web Development',
+      'Machine Learning',
+      'Data Structures',
+      'Algorithms',
+    ],
+    created_at: '2024-02-15T10:30:00Z',
+  },
+  {
+    user_id: 'student-002',
+    username: 'jane.smith',
+    name: 'Jane Smith',
+    institute_email: 'jane.smith@hilcoe.edu',
+    email: 'jane.smith@example.com',
+    overall_score: 92,
+    profile_photo: '',
+    online_status: true,
+    bio: 'Aspiring software engineer with a focus on mobile development and UI/UX design.',
+    roles: ['peer'],
+    interests: ['Mobile Development', 'UI/UX Design', 'React Native', 'Flutter'],
+    created_at: '2024-03-20T14:15:00Z',
+  },
+  {
+    user_id: 'student-003',
+    username: 'alex.johnson',
+    name: 'Alex Johnson',
+    institute_email: 'alex.johnson@hilcoe.edu',
+    email: 'alex.johnson@example.com',
+    overall_score: 78,
+    profile_photo: '',
+    online_status: false,
+    bio: 'Database enthusiast and backend developer.',
+    roles: ['peer'],
+    interests: ['Database Systems', 'Backend Development', 'SQL', 'Node.js'],
+    created_at: '2024-04-10T09:45:00Z',
+  },
+]
+
+// Mock credentials for login
+export const mockCredentials = [
+  { email: 'admin@hilcoe.edu', password: 'admin123' },
+  { email: 'john.doe@hilcoe.edu', password: 'student123' },
+  { email: 'jane.smith@hilcoe.edu', password: 'student123' },
+  { email: 'alex.johnson@hilcoe.edu', password: 'student123' },
+]

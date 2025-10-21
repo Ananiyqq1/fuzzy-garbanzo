@@ -3,17 +3,11 @@
     <form class="upload-form" @submit.prevent="handleSubmit">
       <div class="field">
         <label class="label" for="resource-title">Title</label>
-        <input
-          id="resource-title"
-          v-model="form.title"
-          type="text"
-          placeholder="Enter document title"
-          required
-        />
+        <input id="resource-title" v-model="form.title" type="text" placeholder="Enter document title" required />
       </div>
 
       <div class="field-grid">
-        <div class="field">
+        <!-- <div class="field">
           <label class="label" for="resource-uploader-id">Uploader Id</label>
           <input
           id="resource-uploader-id"
@@ -22,9 +16,9 @@
           disabled
           required
         />
-        </div>
+        </div> -->
 
-        <div class="field">
+        <!-- <div class="field">
           <label class="label" for="resource-room-id">Room Id</label>
           <input
           id="resource-room-id" 
@@ -33,13 +27,13 @@
           required
           disabled
         />
-        </div>
+        </div> -->
       </div>
 
       <div class="field">
         <label class="label" for="resource-file">File</label>
-       <v-file-input label="File input" v-model="form.file"></v-file-input>
-      </div> 
+        <v-file-input label="File input" v-model="form.file"></v-file-input>
+      </div>
 
       <div class="actions">
         <AppButton variant="secondary" type="button" @click="$emit('close')">Cancel</AppButton>
@@ -53,7 +47,8 @@
 import { reactive, watch } from 'vue'
 import AppButton from '../../common/AppButton.vue'
 import AppModal from '../../common/AppModal.vue'
-import {uploadDocument } from '../api/UploadDoc'
+import { uploadDocument } from '../api/UploadDoc'
+import {useDocStore } from '@/stores/useDocStore'
 
 const props = defineProps({
   initialValue: {
@@ -75,8 +70,8 @@ const emit = defineEmits(['close', 'submit'])
 const form = reactive({
   title: '',
   uploaderId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  roomId: props.roomId || '', 
-  file: null, 
+  roomId: props.roomId || '',
+  file: null,
 })
 
 const courseOptions = [
@@ -95,7 +90,7 @@ const typeOptions = [
   { value: 'other', label: 'Other' }
 ]
 
- 
+
 
 function handleFile(event) {
   const file = event.target.files?.[0]
@@ -103,22 +98,30 @@ function handleFile(event) {
   form.fileName = file ? file.name : ''
 }
 
-async function handleSubmit() { 
-  if(form.file == null){
+async function handleSubmit() {
+  if (form.file == null) {
     alert("Please select a file to upload.");
     return;
   }
-var res=await uploadDocument({
-  fileName:form.title,
-  uploaderId:form.uploaderId,
-  roomId:form.roomId,
-},form.file);
- if (res.status === 200) {
-          alert("File uploaded successfully!");
-          emit('close');
-        } else {
-          alert("Upload failed.");
-        }
+  try {
+    var res = await uploadDocument({
+      title: form.title,
+      uploaderId: form.uploaderId,
+      roomId: form.roomId,
+    }, form.file); 
+    if (res.docKey != "") { 
+      const docStore = useDocStore()
+      docStore.$state.currentDocTitle = res.docTitle;
+      docStore.$state.currentDocKey = res.docKey;
+      emit('close');
+      alert("File uploaded successfully!");
+    } else {
+      alert("Upload failed.");
+    }
+  }
+  catch (e) {
+    alert("Have an error ", e)
+  }
   // emit('submit', { ...form })
 }
 </script>

@@ -1,38 +1,6 @@
 import { defineStore } from "pinia";
 import api from "@/common/axios";
 
-const USER_STORAGE_KEY = "hilcoe_demo_current_user";
-const TEMP_STORAGE_KEY = "hilcoe_demo_temp_signup";
-
-const isBrowser = typeof window !== "undefined";
-
-const loadFromStorage = <T>(key: string): T | null => {
-  if (!isBrowser) return null;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return null;
-    return JSON.parse(raw) as T;
-  } catch (err) {
-    console.warn(`Failed to parse storage key ${key}`, err);
-    window.localStorage.removeItem(key);
-    return null;
-  }
-};
-
-const saveToStorage = (key: string, value: unknown) => {
-  if (!isBrowser) return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch (err) {
-    console.warn(`Failed to persist storage key ${key}`, err);
-  }
-};
-
-const clearStorageKey = (key: string) => {
-  if (!isBrowser) return;
-  window.localStorage.removeItem(key);
-};
-
 export interface CurrentUser {
   user_id: string;
   username: string;
@@ -47,125 +15,57 @@ export interface CurrentUser {
   interests: string[];
   created_at: string;
 }
-export interface TempPayload {
-  name: string;
-  user_name: string;
-  institute_email?: string;
-  email: string;
-  password: string;
-  bio?: string;
-  interests?: string[];
-}
+// export interface TempPayload {
+//   name: string;
+//   user_name: string;
+//   institute_email?: string;
+//   email: string;
+//   password: string;
+//   interests?: string[];
+// }
 
 interface AuthState {
   user: CurrentUser | null;
   loading: boolean;
-  tempPayload: TempPayload | null;
+  //  tempPayload: TempPayload | null;
 }
 
 export const useAuthStore = defineStore("auth", {
   state: (): AuthState => ({
-    user: loadFromStorage<CurrentUser>(USER_STORAGE_KEY),
-    loading: false,
-    tempPayload: loadFromStorage<TempPayload>(TEMP_STORAGE_KEY),
+    user: {
+      user_id: "3fa85f64-5717-4562-b3fc-2c963f66afa4",
+      username: "dagm",
+      name: "Dagmawi Asc",
+      institute_email: "dagmawiaa84@gmail.com",
+      overall_score: 4.2,
+      profile_photo: "",
+      online_status: true,
+      bio: "I am a software developer with a passion for learning new technologies.",
+      roles: ["peer"],
+      interests: ["Computer Programming", "Logic Design"],
+      created_at: "2023-10-01T12:00:00Z",
+    },
+    loading: true,
+    // tempPayload: null,
   }),
   actions: {
-    setTempPayload(payload: TempPayload) {
-      this.tempPayload = payload;
-      saveToStorage(TEMP_STORAGE_KEY, payload);
-    },
-    updateTempPayload(payload: Partial<TempPayload>) {
-      if (!this.tempPayload) {
-        this.tempPayload = {
-          name: "",
-          user_name: "",
-          email: "",
-          password: "",
-          ...payload,
-        } as TempPayload;
-        saveToStorage(TEMP_STORAGE_KEY, this.tempPayload);
-        return;
-      }
-      this.tempPayload = {
-        ...this.tempPayload,
-        ...payload,
-      };
-      saveToStorage(TEMP_STORAGE_KEY, this.tempPayload);
-    },
-    clearTempPayload() {
-      this.tempPayload = null;
-      clearStorageKey(TEMP_STORAGE_KEY);
-    },
-    setUser(payload: CurrentUser | null) {
-      this.user = payload;
-      this.loading = false;
-      if (payload) {
-        saveToStorage(USER_STORAGE_KEY, payload);
-      } else {
-        clearStorageKey(USER_STORAGE_KEY);
-      }
-    },
-    completeLocalSignup(
-      interests: string[] = [],
-      bio?: string,
-      options?: { preserveTemp?: boolean }
-    ) {
-      if (!this.tempPayload) {
-        return null;
-      }
-
-      const temp = this.tempPayload;
-      const preserveTemp = options?.preserveTemp ?? false;
-      const generateId = () => {
-        if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-          return crypto.randomUUID();
-        }
-        return `local-${Date.now()}`;
-      };
-
-      const mergedInterests = interests.length
-        ? interests
-        : Array.isArray(temp.interests)
-        ? temp.interests
-        : [];
-
-      const user: CurrentUser = {
-        user_id: generateId(),
-        username:
-          temp.user_name || (temp.email ? temp.email.split("@")[0] : "student"),
-        name: temp.name || temp.user_name || "Student",
-        institute_email: temp.institute_email || "",
-        email: temp.email,
-        overall_score: 0,
-        profile_photo: "",
-        online_status: true,
-        bio: bio ?? temp.bio ?? "",
-        roles: ["peer"],
-        interests: mergedInterests,
-        created_at: new Date().toISOString(),
-      };
-
-      this.setUser(user);
-      if (!preserveTemp) {
-        this.clearTempPayload();
-      }
-      return user;
-    },
+    //  setTempPayload(payload: TempPayload) { 
+      // this.tempPayload = payload;
+    // },
+    // clearTempPayload() {
+    //   this.tempPayload = null;
+    // },
     logout() {
       this.user = null;
-      this.tempPayload = null;
-      this.loading = false;
-      clearStorageKey(USER_STORAGE_KEY);
-      clearStorageKey(TEMP_STORAGE_KEY);
+      // this.tempPayload = null;
     },
     async fetchUser() {
-      if (this.loading) return;
       this.loading = true;
       try {
         const { data } = await api.get("/api/bridge/auth/me");
         this.user = data as CurrentUser;
       } catch (err) {
-        console.warn("fetchUser failed", err);
+        this.user = null;
       } finally {
         this.loading = false;
       }
