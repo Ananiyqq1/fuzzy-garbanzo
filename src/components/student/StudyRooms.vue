@@ -1,12 +1,6 @@
 <template>
   <div class="study-rooms">
     <div class="page-shell">
-      <AppLoading
-        :show="ui.loading"
-        size="large"
-        :duration="3000"
-        @finished="ui.loading = false"
-      />
 
       <div class="header-row">
         <AppContentHeader
@@ -49,8 +43,21 @@
       </div>
 
       <div v-else class="empty-state">
-        <div class="empty-state-card">
-          <i class="fas fa-smile"></i>
+        <div v-if="dataLoading" class="empty-state-card">
+          <div class="loading-indicator" role="status" aria-live="polite">
+            <div class="spinner-wrapper">
+              <div class="spinner-container">
+                <div class="spinner"></div>
+                <div class="spinner-glow"></div>
+              </div>
+            </div>
+            <span class="sr-only">Loading</span>
+          </div>
+        </div>
+        <div v-else class="empty-state-card empty-state-card--message">
+          <div class="empty-icon" aria-hidden="true">
+            <i class="fas fa-door-open"></i>
+          </div>
           <h3>No rooms joined yet</h3>
           <p>Join a room below to start collaborating with your peers</p>
         </div>
@@ -95,8 +102,21 @@
       </div>
 
       <div v-else class="empty-state">
-        <div class="empty-state-card">
-          <i class="fas fa-smile"></i>
+        <div v-if="dataLoading" class="empty-state-card">
+          <div class="loading-indicator" role="status" aria-live="polite">
+            <div class="spinner-wrapper">
+              <div class="spinner-container">
+                <div class="spinner"></div>
+                <div class="spinner-glow"></div>
+              </div>
+            </div>
+            <span class="sr-only">Loading</span>
+          </div>
+        </div>
+        <div v-else class="empty-state-card empty-state-card--message">
+          <div class="empty-icon" aria-hidden="true">
+            <i class="fas fa-door-open"></i>
+          </div>
           <h3>No more rooms</h3>
           <p>Check back soon to catch the next vibrant study room</p>
         </div>
@@ -109,7 +129,6 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppButton from '../common/AppButton.vue'
 import AppContentHeader from '../common/AppContentHeader.vue'
-import AppLoading from '../common/AppLoading.vue'
 import { mapToRoom, type Room } from '../../types/student'
 import loadRooms from './api/GetRooms'
 import { useSignalR } from '@/common/useSignalR'
@@ -145,19 +164,10 @@ interface TabItem {
   badge?: string | number
 }
 
-interface UiState {
-  loading: boolean
-  notify: (msg: string, type?: string) => void
+const ui = reactive({
+  notify: (msg: string, type?: string) => console.log(type ? `${type}: ${msg}` : msg),
   modals: {
-    studyRoomChat: ChatModalState | null
-  }
-}
-
-const ui = reactive<UiState>({
-  loading: false,
-  notify: (msg, type) => console.log(type ? `${type}: ${msg}` : msg),
-  modals: {
-    studyRoomChat: null
+    studyRoomChat: null as ChatModalState | null
   }
 })
 
@@ -166,6 +176,7 @@ const userId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
 
 const joinedRooms = ref<Array<Room>>([]);
 const roomsToExplore = ref<Array<Room>>([]);
+const dataLoading = ref<boolean>(true);
 const { connect } = useSignalR();
 
 // Open chat for joined rooms
@@ -195,8 +206,6 @@ const joinChatRoom = async (roomId: string): Promise<void> => {
 onMounted(async () => {
   try {
     console.log('🏫 StudyRooms: Starting data load...');
-    ui.loading = true;
-    
     // Try SignalR connection (non-critical)
     try {
       await connect();
@@ -235,7 +244,7 @@ onMounted(async () => {
     console.error('Error details:', error.response?.data || error.message);
     ui.notify('Failed to load study rooms. Please try again.', 'error');
   } finally {
-    ui.loading = false;
+    dataLoading.value = false;
   }
 })
 </script>
@@ -303,32 +312,131 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.78);
   border-radius: 1rem;
   padding: 2.5rem 3rem;
-  text-align: center;
   box-shadow: 0 22px 40px -18px rgba(17, 24, 39, 0.4);
   border: 1px solid rgba(229, 231, 235, 0.5);
   display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 420px;
+}
+
+.empty-state-card--message {
   flex-direction: column;
-  gap: 1rem;
-  max-width: 480px;
+  gap: 1.25rem;
+  text-align: center;
+  padding: 2.5rem 3rem;
 }
 
-.empty-state-card i {
-  font-size: 3rem;
-  color: #9ca3af;
-}
-
-.empty-state-card h3 {
+.empty-state-card--message h3 {
   margin: 0;
   font-size: 1.5rem;
   color: #111827;
   font-weight: 600;
 }
 
-.empty-state-card p {
+.empty-state-card--message p {
   margin: 0;
   color: #6b7280;
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.6;
+}
+
+.empty-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(209, 213, 219, 0.65);
+  color: rgb(156, 163, 175);
+  font-size: 1.9rem;
+  box-shadow: 0 18px 36px -20px rgba(17, 24, 39, 0.35);
+}
+
+.empty-icon i {
+  color: inherit;
+  font-size: 1.4em;
+}
+
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.spinner-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+  padding: 2rem 3rem;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(229, 231, 235, 0.4);
+  box-shadow: 0 25px 55px -16px rgba(17, 24, 39, 0.28);
+  max-width: 420px;
+  text-align: center;
+}
+
+.spinner-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 4px solid rgba(17, 24, 39, 0.12);
+  border-top: 4px solid #111827;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  position: relative;
+  z-index: 2;
+}
+
+
+.spinner-glow {
+  position: absolute;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(17, 24, 39, 0.18) 0%, transparent 72%);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .rooms-grid {

@@ -124,11 +124,6 @@ const navMenuItems = computed(() => [
     icon: 'fas fa-layer-group'
   },
   {
-    name: 'Users',
-    path: '/admin/users',
-    icon: 'fas fa-users'
-  },
-  {
     name: 'Insights',
     path: '/admin/insights',
     icon: 'fas fa-lightbulb'
@@ -137,11 +132,6 @@ const navMenuItems = computed(() => [
     name: 'Analytics',
     path: '/admin/analytics',
     icon: 'fas fa-chart-line'
-  },
-  {
-    name: 'Settings',
-    path: '/admin/settings',
-    icon: 'fas fa-cog'
   }
 ])
 

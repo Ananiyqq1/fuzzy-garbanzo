@@ -17,6 +17,7 @@
 // import TopicManagement from '../components/admin/TopicManagement.vue'
 // import UserManagement from '../components/admin/UserManagement.vue'
 // import Analytics from '../components/admin/Analytics.vue'
+import AdminInsights from '../components/admin/AdminInsights.vue'
 // import Settings from '../components/admin/Settings.vue'
 // import AdminProfile from '../components/admin/AdminProfile.vue'
 // import AdminInsights from '../components/admin/AdminInsights.vue'
@@ -34,7 +35,6 @@ import StudentDashboard from '../components/student/StudentDashboard.vue'
 import MySessions from '../components/student/MySessions.vue'
 import Resources from '../components/student/Resources.vue'
 import StudyRooms from '../components/student/StudyRooms.vue'
-import Evaluations from '../components/student/Evaluations.vue'
 import StudentPreferences from '../components/student/StudentPreferences.vue'
 import StudentProfile from '../components/student/StudentProfile.vue'
 
@@ -42,9 +42,7 @@ import AdminView from '../views/admin/AdminView.vue'
 import AdminDashboard from '../components/admin/AdminDashboard.vue'
 import CourseManagement from '../components/admin/CourseManagement.vue'
 import TopicManagement from '../components/admin/TopicManagement.vue'
-import UserManagement from '../components/admin/UserManagement.vue'
 import Analytics from '../components/admin/Analytics.vue'
-import Settings from '../components/admin/Settings.vue'
 import AdminProfile from '../components/admin/AdminProfile.vue' 
 // import AIReport from '@/components/admin/AIReport.vue';
 import Room from '@/components/student/Room.vue';
@@ -79,7 +77,6 @@ const routes = [
       { path: 'resources', component: Resources, name: "Resources" },
       { path: 'study-rooms', component: StudyRooms, name: "StudyRooms" },
       { path: 'room/:id', component: Room, name: "StudyRoom" },
-      { path: 'evaluations', component: Evaluations, name: "Evaluations" },
       { path: 'profile', component: StudentProfile, name: "StudentProfile" },
     ],
     meta: { requiresAuth: true, role: 'peer' },
@@ -94,9 +91,9 @@ const routes = [
       { path: '', component: AdminDashboard, name: "AdminDashboard" },
       { path: 'courses', component: CourseManagement, name: "Courses" },
       { path: 'topics', component: TopicManagement, name: "Topics" },
-      { path: 'users', component: UserManagement, name: "Users" },
+      { path: 'insights', component: AdminInsights, name: "AdminInsights" },
+      { path: 'analytics', component: Analytics, name: "Analytics" },
       // { path: 'analytics', component: AIReport, name: "Analytics" },
-      { path: 'settings', component: Settings, name: "Settings" },
       { path: 'profile', component: AdminProfile, name: "AdminProfile" },
     ],
     meta: { requiresAuth: true, role: 'admin' },

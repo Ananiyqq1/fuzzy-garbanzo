@@ -6,7 +6,21 @@
         subtitle="Quickly jump into rooms we think will fit for you"
       />
 
-      <div v-if="fetchedRooms.length" class="rooms-grid">
+      <div v-if="roomsLoading" class="empty-state">
+        <div class="empty-state-card">
+          <div class="loading-indicator" role="status" aria-live="polite">
+            <div class="spinner-wrapper">
+              <div class="spinner-container">
+                <div class="spinner"></div>
+                <div class="spinner-glow"></div>
+              </div>
+            </div>
+            <span class="sr-only">Loading</span>
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="fetchedRooms.length" class="rooms-grid">
         <div
           v-for="room in fetchedRooms"
           :key="room.id"
@@ -43,8 +57,10 @@
       </div>
 
       <div v-else class="empty-state">
-        <div class="empty-state-card">
-          <i class="fas fa-smile"></i>
+        <div class="empty-state-card empty-state-card--message">
+          <div class="empty-icon" aria-hidden="true">
+            <i class="fas fa-door-open"></i>
+          </div>
           <h3>No rooms are open right now</h3>
           <p>Check back soon to catch the next available study session</p>
         </div>
@@ -56,7 +72,7 @@
           subtitle="A bespoke collection of documents, crafted to match your needs"
         />
 
-        <div class="books-grid" v-if="bookRecommendations.length">
+        <div class="books-grid" v-if="!docsLoading && bookRecommendations.length">
           <div
             v-for="resource in bookRecommendations"
             :key="resource.id"
@@ -64,7 +80,7 @@
           >
             <div class="resource-header">
               <div class="resource-icon">
-                <i class="fas fa-calendar"></i>
+                <i class="fas fa-book"></i>
               </div>
               <div class="resource-title">{{ resource.docTitle }}</div>
             </div>
@@ -94,13 +110,28 @@
             </div>
           </div>
         </div>
-        <div v-else class="empty-state">
-        <div class="empty-state-card">
-          <i class="fas fa-smile"></i>
-          <h3>Loading Documents curated for you</h3>
-          <!-- <p>Check back soon to catch the next available study session</p> -->
+        <div v-else-if="docsLoading" class="empty-state">
+          <div class="empty-state-card">
+            <div class="loading-indicator" role="status" aria-live="polite">
+              <div class="spinner-wrapper">
+                <div class="spinner-container">
+                  <div class="spinner"></div>
+                  <div class="spinner-glow"></div>
+                </div>
+              </div>
+              <span class="sr-only">Loading</span>
+            </div>
+          </div>
         </div>
-      </div>
+        <div v-else class="empty-state">
+          <div class="empty-state-card empty-state-card--message">
+            <div class="empty-icon" aria-hidden="true">
+              <i class="fas fa-book-open"></i>
+            </div>
+            <h3>No personalized resources yet</h3>
+            <p>Please check back soon for newly added recommendations</p>
+          </div>
+        </div>
       </section>
 
       <section class="contributors-section" v-if="topContributors.length">
@@ -160,18 +191,52 @@ interface TopContributor {
 }
 const {user}=useAuthStore();
 const {connect} = useSignalR();
-var fetchedRooms=ref<Array<Room>>([])
-var bookRecommendations=ref<Array<Resource>>([])
+const fetchedRooms=ref<Array<Room>>([])
+const bookRecommendations=ref<Array<Resource>>([])
+const roomsLoading = ref(true)
+const docsLoading = ref(true)
 
 onMounted(async()=>{
-  await connect()
-  var roomsResponse=await getRoomSuggestions(user?.user_id as string,user?.interests as Array<string>)
-  if(roomsResponse.status==200&&roomsResponse.data!=null){
-    fetchedRooms.value=roomsResponse.data.map(mapToRoom)
+  roomsLoading.value = true
+  docsLoading.value = true
+
+  try{
+    await connect()
   }
-  var docResponse=await getDocSuggestions(user?.interests as Array<string>)
-  if(docResponse.status==200&&docResponse.data!=null){
-    bookRecommendations.value=docResponse.data.map(mapToResource) 
+  catch(error){
+    console.error('Error establishing realtime connection:', error)
+  }
+
+  try{
+    const roomsResponse=await getRoomSuggestions(user?.user_id as string,user?.interests as Array<string>)
+    if(roomsResponse.status==200&&roomsResponse.data!=null){
+      fetchedRooms.value=roomsResponse.data.map(mapToRoom)
+    }else{
+      fetchedRooms.value=[]
+    }
+  }
+  catch(error){
+    fetchedRooms.value=[]
+    console.error('Error fetching rooms:', error)
+  }
+  finally{
+    roomsLoading.value = false
+  }
+
+  try{
+    const docResponse=await getDocSuggestions(user?.interests as Array<string>)
+    if(docResponse.status==200&&docResponse.data!=null){
+      bookRecommendations.value=docResponse.data.map(mapToResource) 
+    }else{
+      bookRecommendations.value=[]
+    }
+  }
+  catch(error){
+    bookRecommendations.value=[]
+    console.error('Error fetching recommended documents:', error)
+  }
+  finally{
+    docsLoading.value = false
   }
 })  
 type StudyRoomCategory =
@@ -195,27 +260,27 @@ const categoryKeywords: Record<StudyRoomCategory, string[]> = {
 const topContributors: TopContributor[] = [
   {
     id: 1,
-    name: 'Moa Fuad',
+    name: 'Salvador Dalí',
     role: 'Peer Mentor',
     score: 5,
     totalPoints: 1320,
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80'
+    avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTEly0Jts91GTbxP-gp3edbyLHZm8Z5Pe17oA&s?auto=format&fit=crop&w=200&q=80'
   },
   {
     id: 2,
-    name: 'Simon Yohannes',
+    name: 'Sean Connary',
     role: 'Discussion Lead',
     score: 5,
     totalPoints: 1245,
-    avatar: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=200&q=80'
+    avatar: 'https://ichef.bbci.co.uk/news/480/cpsprodpb/184F8/production/_98167599_neversayneveragain_getty.jpg.webp?auto=format&fit=crop&w=200&q=80'
   },
   {
     id: 3,
-    name: 'Hayat Abdulrezak',
+    name: 'Vassily Ivanchuk',
     role: 'Resource Curator',
     score: 5,
     totalPoints: 1184,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80'
+    avatar: 'https://dgriffinchess.wordpress.com/wp-content/uploads/2020/08/1988-moscow-ivanchuk-v.-levitin-novosti-press.jpg?auto=format&fit=crop&w=200&q=80'
   }
 ];
 
@@ -312,7 +377,7 @@ catch(e){
 }
 
 .status-general {
-  background: linear-gradient(135deg, #11ff00, #23a003);
+  background: linear-gradient(135deg, #94a3b8, #64748b);
   color: #fff;
 }
 
@@ -323,6 +388,26 @@ catch(e){
 
 .status-databases {
   background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #fff;
+}
+
+.status-systems {
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
+  color: #fff;
+}
+
+.status-web-mobile {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+}
+
+.status-ict-research {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #fff;
+}
+
+.status-specialized {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   color: #fff;
 }
 
@@ -400,30 +485,129 @@ catch(e){
   background: rgba(255, 255, 255, 0.78);
   border-radius: 1rem;
   padding: 2.5rem 3rem;
-  text-align: center;
   box-shadow: 0 22px 40px -18px rgba(17, 24, 39, 0.4);
   border: 1px solid rgba(229, 231, 235, 0.5);
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  justify-content: center;
+  align-items: center;
   max-width: 420px;
 }
 
-.empty-state-card i {
-  font-size: 2.5rem;
-  color: #10b981;
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
 }
 
-.empty-state-card h3 {
+.spinner-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+  padding: 2rem 3rem;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(229, 231, 235, 0.4);
+  box-shadow: 0 25px 55px -16px rgba(17, 24, 39, 0.28);
+  max-width: 420px;
+  text-align: center;
+}
+
+.spinner-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 4px solid rgba(17, 24, 39, 0.12);
+  border-top: 4px solid #111827;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  position: relative;
+  z-index: 2;
+}
+
+.spinner-glow {
+  position: absolute;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(17, 24, 39, 0.18) 0%, transparent 72%);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.empty-state-card--message {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+  padding: 2.5rem 3rem;
+}
+
+.empty-state-card--message h3 {
   margin: 0;
   font-size: 1.5rem;
   color: #111827;
 }
 
-.empty-state-card p {
+.empty-state-card--message p {
   margin: 0;
   color: #6b7280;
   font-size: 0.95rem;
+}
+
+.empty-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(209, 213, 219, 0.65);
+  color: rgb(156, 163, 175);
+  font-size: 1.9rem;
+  box-shadow: 0 18px 36px -20px rgba(17, 24, 39, 0.35);
+}
+
+.empty-icon i {
+  color: inherit;
+  font-size: 1.4em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
 }
 
 .books-section {

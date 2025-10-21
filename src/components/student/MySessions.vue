@@ -1,21 +1,20 @@
 <template>
   <div class="my-sessions">
     <div class="page-shell">
-      <AppLoading
-        :show="ui.loading"
-        size="large"
-        :duration="3000"
-        @finished="ui.loading = false"
-      />
 
       <div class="header-row">
         <AppContentHeader
           title="My Study Sessions"
           subtitle="Manage your upcoming, ongoing, and past study sessions"
         />
-        <AppButton class="create-session-btn" size="small" icon="fas fa-plus" @click="openCreateSession">
-          Create Session
-        </AppButton>
+        <div class="header-actions">
+          <AppButton class="create-session-btn" size="small" icon="fas fa-plus" @click="openCreateSession">
+            Create Session
+          </AppButton>
+          <AppButton class="evaluate-session-btn" size="small" icon="fas fa-star" variant="secondary" @click="openEvaluation">
+            Evaluate Session
+          </AppButton>
+        </div>
       </div>
 
       <AppTabs v-model="activeFilter" :tabs="filterTabs" />
@@ -114,32 +113,39 @@
         @close="ui.modals.createSession = false"
         @submit="handleCreateSession"
       />
+
+      <CourseEvaluationModal
+        v-if="ui.modals.courseEvaluation"
+        :course="ui.modals.courseEvaluation"
+        @close="ui.modals.courseEvaluation = null"
+        @submit="submitEvaluation"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, computed, ref } from 'vue';
+import { reactive, computed, ref } from 'vue';
 import AppButton from '../common/AppButton.vue';
 import AppCard from '../common/AppCard.vue';
 import AppContentHeader from '../common/AppContentHeader.vue';
-import AppLoading from '../common/AppLoading.vue';
 import AppStatusBadge from '../common/AppStatusBadge.vue';
 import AppTabs from '../common/AppTabs.vue';
 import SessionDetailsModal from './modals/SessionDetailsModal.vue';
 import SessionFeedbackModal from './modals/SessionFeedbackModal.vue';
 import SessionMaterialsModal from './modals/SessionMaterialsModal.vue';
 import CreateSessionModal from './modals/CreateSessionModal.vue';
+import CourseEvaluationModal from './modals/CourseEvaluationModal.vue';
 import type { StudentSession, SessionFeedback } from '../../types/student';
 
 interface UiState {
-  loading: boolean;
   notify: (msg: string, type?: string) => void;
   modals: {
     sessionDetails: StudentSession | null;
     sessionMaterials: (StudentSession & { date: string; materials: any[] }) | null;
     sessionFeedback: (StudentSession & { feedback: SessionFeedback }) | null;
     createSession: boolean;
+    courseEvaluation: StudentSession | null;
   };
 }
 
@@ -157,13 +163,13 @@ interface CreateSessionForm {
 type FilterValue = 'all' | 'upcoming' | 'ongoing' | 'completed';
 
 const ui: UiState = reactive({
-  loading: false,
   notify: (msg: string, type?: string) => console.log(type ? `${type}: ${msg}` : msg),
   modals: {
     sessionDetails: null,
     sessionMaterials: null,
     sessionFeedback: null,
     createSession: false,
+    courseEvaluation: null,
   },
 });
 
@@ -288,14 +294,6 @@ const filteredSessions = computed<StudentSession[]>(() => {
   );
 });
 
-onMounted(() => {
-  loadSessions();
-});
-
-const loadSessions = (): void => {
-  ui.loading = true;
-};
-
 const formatSessionDuration = (session: StudentSession): string => {
   if (session.duration) {
     return session.duration;
@@ -370,6 +368,28 @@ const submitFeedback = (payload: any): void => {
 
 const openCreateSession = (): void => {
   ui.modals.createSession = true;
+};
+
+const openEvaluation = (): void => {
+  const latestCompleted = student.allSessions.find((session) => session.status === 'Completed');
+  ui.modals.courseEvaluation = latestCompleted || {
+    id: 0,
+    title: 'General Session Feedback',
+    datetime: '',
+    startAt: new Date().toISOString(),
+    type: 'Evaluation',
+    host: 'You',
+    status: 'Completed',
+    description: '',
+    participants: [],
+    materials: [],
+    feedback: { rating: 0, comments: '', recommend: 'yes' },
+  } as StudentSession;
+};
+
+const submitEvaluation = (payload: any): void => {
+  ui.notify('Evaluation submitted successfully!', 'success');
+  ui.modals.courseEvaluation = null;
 };
 
 const handleCreateSession = (form: CreateSessionForm): void => {

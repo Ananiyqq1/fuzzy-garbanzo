@@ -130,8 +130,7 @@ const navMenuItems = computed(() => [
   { name: 'Dashboard', path: '/', icon: 'fas fa-home' },
   { name: 'My Sessions', path: '/sessions', icon: 'fas fa-calendar-check' },
   { name: 'Resources', path: '/resources', icon: 'fas fa-book' },
-  { name: 'Study Rooms', path: '/study-rooms', icon: 'fas fa-users' },
-  { name: 'Evaluation', path: '/evaluations', icon: 'fas fa-chart-line' }
+  { name: 'Study Rooms', path: '/study-rooms', icon: 'fas fa-users' }
 ])
 
 const containerLayoutClasses = computed(() => ({
@@ -158,11 +157,6 @@ const navItems = [
     label: 'Study Rooms',
     path: '/study-rooms',
     iconPath: 'M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-1a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v1h-3zM4.75 12.094A5.973 5.973 0 004 15v1H1v-1a3 3 0 013.75-2.906z'
-  },
-  {
-    label: 'Evaluation',
-    path: '/evaluations',
-    iconPath: 'M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z'
   }
 ]
 </script>

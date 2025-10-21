@@ -60,6 +60,7 @@ export interface StudentSession {
   description: string;
   participants: string[];
   materials: SessionMaterial[];
+  duration?: string;
   feedback?: SessionFeedback;
 }
 
