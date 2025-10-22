@@ -10,7 +10,7 @@
 
       <div class="chat-layout">
         <div class="chat-card">
-          <div class="messages-scroll">
+          <div class="messages-scroll" ref="messagesScrollRef">
             <v-infinite-scroll
               ref="infiniteScrollRef"
               side="start"
@@ -57,8 +57,14 @@
                     <div class="empty-icon" aria-hidden="true">
                       <i class="fas fa-comments"></i>
                     </div>
-                    <h3>No messages yet</h3>
-                    <p>Start the conversation by sending the first message.</p>
+                    <h3>{{ hasConversation ? 'No more messages' : 'No messages yet' }}</h3>
+                    <p>
+                      {{
+                        hasConversation
+                          ? 'Looks like you have reached the end of the conversation.'
+                          : 'Start the conversation by sending the first message.'
+                      }}
+                    </p>
                   </div>
                 </div>
               </template>
@@ -98,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick, onMounted } from 'vue';
+import { ref, reactive, nextTick, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSignalR } from '@/common/useSignalR';
 import { useDocStore } from '@/stores/useDocStore';
@@ -112,6 +118,7 @@ import AppContentHeader from '../common/AppContentHeader.vue';
 const message = ref('');
 const docUpload = ref(false);
 const infiniteScrollRef = ref<any>(null);
+const messagesScrollRef = ref<any>(null);
 const docStore = useDocStore();
 
 interface post { 
@@ -127,6 +134,8 @@ interface post {
 const state = reactive({
     posts: [] as Array<post>
 });
+
+const hasConversation = computed(() => state.posts.length > 0);
 
 const { joinRoom, sendMessage, onMessage, onDocument, checkConnection, connect } = useSignalR();
 const route = useRoute();
@@ -150,7 +159,7 @@ const userName = user?.username as string;
 const userId = user?.user_id as string;
 const scrollToBottom = async () => {
     await nextTick();
-    const el = infiniteScrollRef.value?.$el;
+    const el = messagesScrollRef.value;
     if (el) {
         el.scrollTo({
             top: el.scrollHeight,
@@ -158,6 +167,14 @@ const scrollToBottom = async () => {
         });
     }
 };
+
+watch(
+    () => state.posts,
+    () => {
+        scrollToBottom();
+    },
+    { deep: true }
+);
 
 onMounted(async () => {
     pageNumber=1;
@@ -180,7 +197,6 @@ onMounted(async () => {
             userName: userName,
             content: message
         });
-        scrollToBottom();
     });
 
     onDocument((senderId: string, docKey: string, docTitle: string) => {
@@ -193,7 +209,6 @@ onMounted(async () => {
             userName: userName,
             content: ''
         });
-        scrollToBottom();
     });
 });
 
